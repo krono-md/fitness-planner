@@ -111,6 +111,42 @@ export const mockUsers = {
     onboardingComplete: true
   } as UserProfile,
 
+  intermediate_student: {
+    id: 'user_intermediate',
+    name: 'Jordan Kim',
+    age: 21,
+    height: 68,
+    weight: 160,
+    goal: 'improve_strength',
+    secondaryGoals: ['improve_fitness'],
+    fitnessLevel: 'intermediate',
+    activityLevel: 'moderately_active',
+    availableTimePerSession: '30-45',
+    workoutsPerWeek: 4,
+    preferredDays: ['Monday', 'Tuesday', 'Thursday', 'Saturday'],
+    scheduleChangesFrequently: false,
+    workoutType: 'strength',
+    equipment: ['dumbbells'],
+    workoutLocation: 'gym',
+    preferredExercises: ['compound_lifts'],
+    dislikedExercises: [],
+    typicalBedtime: '22:30',
+    typicalWakeTime: '06:45',
+    averageSleep: 7,
+    stressLevel: 'moderate',
+    recoveryQuality: 'good',
+    preferredIntensity: 'moderate',
+    morningVsEvening: 'morning',
+    shortVsLong: 'mixed',
+    recoveryDayPreference: 'active_recovery',
+    scheduleBlocks: [
+      { day: 'Monday', startTime: '09:00', endTime: '12:00', type: 'class', title: 'Engineering' },
+      { day: 'Wednesday', startTime: '10:00', endTime: '14:00', type: 'class', title: 'Lab' },
+      { day: 'Friday', startTime: '08:00', endTime: '11:00', type: 'class', title: 'Seminar' },
+    ],
+    onboardingComplete: true
+  } as UserProfile,
+
   home_student: {
     id: 'user_home',
     name: 'Sophie Chen',

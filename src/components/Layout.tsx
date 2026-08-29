@@ -1,6 +1,4 @@
 import React from 'react'
-import { Menu, X, Bell, User, Zap } from 'lucide-react'
-import { useAppStore } from '../store/appStore'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
@@ -13,16 +11,13 @@ interface LayoutProps {
 
 export default function Layout({ children, onDemoSwitch, demoMode, onNotificationOpen }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
-  const { user } = useAppStore()
 
   return (
-    <div className="flex h-screen bg-dark-bg text-white/90">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-dark-bg text-white/90 overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
+      {/* Main panel — Whop content area separation */}
+      <div className="flex-1 flex flex-col min-w-0 lg:rounded-tl-2xl lg:border-l lg:border-t border-white/[0.055] bg-dark-panel overflow-hidden">
         <TopBar
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           demoMode={demoMode}
@@ -30,9 +25,8 @@ export default function Layout({ children, onDemoSwitch, demoMode, onNotificatio
           onNotificationOpen={onNotificationOpen}
         />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-auto bg-mesh">
+          <div className="max-w-6xl mx-auto">
             {children}
           </div>
         </main>

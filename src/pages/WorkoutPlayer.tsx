@@ -9,12 +9,11 @@ import {
   Volume2
 } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
-import { PersonalizationEngine } from '../engine/personalizationEngine'
 
 export default function WorkoutPlayer() {
   const { workoutId } = useParams()
   const navigate = useNavigate()
-  const { user, addWorkoutSession } = useAppStore()
+  const { user, addWorkoutSession, userPlan } = useAppStore()
 
   const [workout, setWorkout] = useState<any>(null)
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0)
@@ -28,11 +27,10 @@ export default function WorkoutPlayer() {
 
   useEffect(() => {
     if (user) {
-      const plan = PersonalizationEngine.generatePlan(user)
-      const found = plan.find(w => w.id === workoutId) || plan[0]
-      setWorkout(found)
+      const found = userPlan.find(w => w.id === workoutId) || userPlan.find(w => w.exercises.length > 0)
+      setWorkout(found || null)
     }
-  }, [user, workoutId])
+  }, [user, workoutId, userPlan])
 
   // Timer for rest and elapsed time
   useEffect(() => {
@@ -165,7 +163,7 @@ export default function WorkoutPlayer() {
   return (
     <div className="min-h-screen bg-dark-bg flex flex-col">
       {/* Header */}
-      <div className="bg-dark-surface border-b border-dark-border p-4">
+      <div className="bg-dark-surface/95 backdrop-blur-xl border-b border-white/[0.06] p-4">
         <div className="flex items-center justify-between">
           <button onClick={() => navigate('/')} className="p-2 hover:bg-dark-hover rounded-lg">
             <X className="w-6 h-6" />
@@ -192,14 +190,14 @@ export default function WorkoutPlayer() {
       <div className="flex-1 p-6 flex flex-col">
         {/* Rest Overlay */}
         {isResting && (
-          <div className="absolute inset-0 bg-dark-bg/95 flex items-center justify-center z-10">
-            <div className="text-center">
+          <div className="fixed inset-0 bg-dark-bg/95 flex items-center justify-center z-50 p-4">
+            <div className="text-center max-w-sm w-full">
               <p className="text-xl text-white/60 mb-4">Rest</p>
-              <div className="text-8xl font-bold mb-4">{restTime}</div>
-              <p className="text-white/60">Next: {workout.exercises[currentExerciseIndex + 1]?.name}</p>
+              <div className="text-7xl md:text-8xl font-bold mb-4">{restTime}</div>
+              <p className="text-white/60 mb-6 md:mb-8">Next: {workout.exercises[currentExerciseIndex + 1]?.name}</p>
               <button
                 onClick={() => setIsResting(false)}
-                className="mt-6 px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-lg font-bold"
+                className="min-h-12 px-8 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-lg"
               >
                 Skip Rest
               </button>
@@ -249,40 +247,40 @@ export default function WorkoutPlayer() {
         </div>
 
         {/* Controls */}
-        <div className="bg-dark-surface border-t border-dark-border p-6">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+        <div className="bg-dark-surface border-t border-dark-border p-4 md:p-6">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3 md:gap-4">
             <button
               onClick={handlePrevious}
               disabled={currentExerciseIndex === 0}
               className={`
-                p-4 rounded-full transition-colors
+                min-h-11 min-w-11 p-3 md:p-4 rounded-full transition-colors flex items-center justify-center
                 ${currentExerciseIndex === 0
                   ? 'bg-dark-elevated text-white/30'
                   : 'bg-dark-elevated hover:bg-dark-hover'
                 }
               `}
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
             <button
               onClick={() => setIsPaused(!isPaused)}
-              className="p-4 bg-dark-elevated hover:bg-dark-hover rounded-full"
+              className="min-h-11 min-w-11 p-3 md:p-4 bg-dark-elevated hover:bg-dark-hover rounded-full flex items-center justify-center"
             >
-              {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
+              {isPaused ? <Play className="w-5 h-5 md:w-6 md:h-6" /> : <Pause className="w-5 h-5 md:w-6 md:h-6" />}
             </button>
 
             {isPlaying ? (
               <button
                 onClick={handleNext}
-                className="flex-1 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold"
+                className="flex-1 min-h-11 py-3 md:py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-sm md:text-base"
               >
-                {currentExerciseIndex === workout.exercises.length - 1 ? 'Finish' : 'Next Exercise'}
+                {currentExerciseIndex === workout.exercises.length - 1 ? 'Finish' : 'Next'}
               </button>
             ) : (
               <button
                 onClick={handleStart}
-                className="flex-1 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold"
+                className="flex-1 min-h-11 py-3 md:py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-sm md:text-base"
               >
                 Start Exercise
               </button>

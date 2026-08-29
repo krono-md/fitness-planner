@@ -74,48 +74,48 @@ export default function Insights() {
   ]
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold mb-2">Insights</h1>
-        <p className="text-white/50 text-lg">Personalized analytics and recommendations</p>
+        <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">Insights</h1>
+        <p className="text-white/50 text-sm md:text-lg">Personalized analytics and recommendations</p>
       </div>
 
       {/* Key Insights Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {insights.map((insight, idx) => {
           const Icon = insight.icon
           return (
-            <div key={idx} className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-soft hover:shadow-medium transition-all">
-              <div className={`inline-flex p-3 rounded-xl ${insight.bg} mb-4`}>
-                <Icon className={`w-5 h-5 ${insight.color}`} />
+            <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl p-4 md:p-5 shadow-soft hover:shadow-medium transition-all">
+              <div className={`inline-flex p-2.5 md:p-3 rounded-xl ${insight.bg} mb-2.5 md:mb-4`}>
+                <Icon className={`w-4 h-4 md:w-5 md:h-5 ${insight.color}`} />
               </div>
-              <p className="text-white/50 text-sm font-medium mb-1">{insight.title}</p>
-              <div className="text-3xl font-bold mb-1">{insight.value}</div>
-              <p className="text-sm text-white/60">{insight.detail}</p>
+              <p className="text-xs md:text-sm text-white/50 font-medium mb-0.5">{insight.title}</p>
+              <div className="text-2xl md:text-3xl font-bold mb-1">{insight.value}</div>
+              <p className="text-xs md:text-sm text-white/60">{insight.detail}</p>
             </div>
           )
         })}
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Weekly Consistency */}
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-medium">
-          <h2 className="text-2xl font-bold mb-6">Weekly Consistency</h2>
-          <div className="h-64">
+        <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6 shadow-medium">
+          <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Weekly Consistency</h2>
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
                 <XAxis
                   dataKey="day"
                   stroke="#666"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
                   stroke="#666"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -123,7 +123,8 @@ export default function Insights() {
                   contentStyle={{
                     backgroundColor: '#1a1a1a',
                     border: '1px solid #262626',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    fontSize: '12px'
                   }}
                   labelStyle={{ color: '#fff' }}
                 />
@@ -135,18 +136,18 @@ export default function Insights() {
         </div>
 
         {/* Workout Distribution */}
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-medium">
-          <h2 className="text-2xl font-bold mb-6">Workout Distribution</h2>
-          <div className="h-64 flex items-center justify-center">
+        <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6 shadow-medium">
+          <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Workout Distribution</h2>
+          <div className="h-48 md:h-64 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={workoutDistribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={4}
                   dataKey="value"
                 >
                   {workoutDistribution.map((entry, index) => (
@@ -157,18 +158,19 @@ export default function Insights() {
                   contentStyle={{
                     backgroundColor: '#1a1a1a',
                     border: '1px solid #262626',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    fontSize: '12px'
                   }}
                   labelStyle={{ color: '#fff' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex justify-center gap-6 mt-4">
+          <div className="flex flex-wrap justify-center gap-2.5 md:gap-6 mt-4">
             {workoutDistribution.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-sm text-white/70">{item.name}</span>
+              <div key={idx} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-xs md:text-sm text-white/70">{item.name}</span>
               </div>
             ))}
           </div>
@@ -176,22 +178,22 @@ export default function Insights() {
       </div>
 
       {/* Recommendations */}
-      <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-medium">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-accent-primary/20 rounded-xl">
-            <Lightbulb className="w-6 h-6 text-accent-primary" />
+      <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6 shadow-medium">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <div className="p-2.5 md:p-3 rounded-xl bg-accent-primary/20">
+            <Lightbulb className="w-4 h-4 md:w-6 md:h-6 text-accent-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">Recommendations</h2>
-            <p className="text-white/50 text-sm">Personalized suggestions based on your patterns</p>
+            <h2 className="text-lg md:text-2xl font-bold">Recommendations</h2>
+            <p className="text-white/50 text-xs md:text-sm">Personalized suggestions based on your patterns</p>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {recommendations.map((rec, idx) => (
-            <div key={idx} className="flex items-start gap-3 p-4 bg-dark-elevated rounded-xl border border-dark-border">
-              <CheckCircle className="w-5 h-5 text-accent-success flex-shrink-0 mt-0.5" />
-              <p className="text-white/90">{rec}</p>
+            <div key={idx} className="flex items-start gap-2.5 md:gap-3 p-3 md:p-4 bg-dark-elevated rounded-xl border border-dark-border">
+              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-accent-success flex-shrink-0 mt-0.5" />
+              <p className="text-white/90 text-sm md:text-base">{rec}</p>
             </div>
           ))}
         </div>
@@ -199,13 +201,13 @@ export default function Insights() {
 
       {/* Adaptive Suggestions */}
       {adaptations.length > 0 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-medium">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-accent-warning/20 rounded-xl">
-              <Zap className="w-6 h-6 text-accent-warning" />
+        <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6 shadow-medium">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <div className="p-2.5 md:p-3 rounded-xl bg-accent-warning/20">
+              <Zap className="w-4 h-4 md:w-6 md:h-6 text-accent-warning" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Plan Adjustments</h2>
+              <h2 className="text-lg md:text-2xl font-bold">Plan Adjustments</h2>
               <p className="text-white/50 text-sm">Suggestions to optimize your plan</p>
             </div>
           </div>

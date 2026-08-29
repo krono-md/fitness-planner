@@ -2,26 +2,162 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  @apply transition-colors duration-200;
+@layer base {
+  * {
+    @apply border-dark-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-dark-bg text-white/90 font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
 }
 
-html {
-  color-scheme: dark;
+@layer components {
+  /* ── Surfaces ── */
+  .whop-card {
+    @apply relative bg-dark-elevated/80 border border-white/[0.055] rounded-2xl overflow-hidden;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .whop-card::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
+  }
+
+  .whop-card-hover {
+    @apply whop-card hover:border-white/[0.09] hover:bg-dark-elevated transition-all duration-200;
+  }
+
+  .whop-featured {
+    @apply whop-card border-accent-primary/15;
+  }
+
+  .whop-featured::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-accent-primary/[0.07] via-transparent to-accent-secondary/[0.04] pointer-events-none;
+  }
+
+  /* ── Typography ── */
+  .whop-micro {
+    @apply font-semibold uppercase tracking-[0.12em] text-white/30;
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+
+  .whop-page-title {
+    @apply text-xl md:text-2xl font-bold tracking-tight text-white;
+  }
+
+  .whop-page-sub {
+    @apply text-[13px] text-white/40 mt-0.5;
+  }
+
+  /* ── Chips & buttons ── */
+  .whop-pill {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold
+           border border-white/[0.08] bg-white/[0.04] text-white/60;
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+
+  .whop-pill-accent {
+    @apply whop-pill border-accent-primary/25 bg-accent-primary/10 text-accent-primary;
+  }
+
+  .whop-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           bg-gradient-to-b from-accent-primary to-indigo-600
+           rounded-xl font-semibold text-[13px] text-white
+           hover:brightness-110 active:scale-[0.98]
+           transition-all duration-150;
+    box-shadow: 0 0 24px -6px rgba(99, 102, 241, 0.3);
+  }
+
+  .whop-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+           font-medium text-[13px] text-white/65
+           border border-white/[0.08] bg-white/[0.025]
+           hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]
+           active:scale-[0.98] transition-all duration-150;
+  }
+
+  .whop-input {
+    @apply w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-[13px]
+           focus:outline-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary/25
+           placeholder:text-white/25 text-white/85;
+  }
+
+  /* ── Icon tiles (Whop-style colored badges) ── */
+  .whop-icon-tile {
+    @apply w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0;
+  }
+
+  /* ── Sidebar nav ── */
+  .whop-nav-item {
+    @apply flex items-center gap-2.5 px-2 py-[7px] rounded-xl text-[13px] font-medium text-white/50
+           hover:text-white/85 hover:bg-white/[0.035] transition-all duration-150;
+  }
+
+  .whop-nav-active {
+    @apply !text-white bg-white/[0.06] hover:bg-white/[0.07];
+  }
+
+  .whop-section-label {
+    @apply px-2.5 pt-3 pb-1 font-semibold uppercase tracking-[0.14em] text-white/25;
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+
+  /* ── Stat blocks ── */
+  .whop-stat {
+    @apply whop-card-hover p-4;
+  }
+
+  .whop-stat-value {
+    @apply text-2xl font-bold tracking-tight text-white tabular-nums;
+  }
+
+  /* ── Content shell ── */
+  .whop-page {
+    @apply p-4 md:p-6 lg:p-7 space-y-5;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  .whop-divider {
+    @apply h-px bg-white/[0.06] my-1;
+  }
 }
 
-body {
-  @apply bg-dark-bg text-white/90 font-sans;
+@keyframes loading {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 ::-webkit-scrollbar {
-  @apply w-2;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-dark-surface;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-dark-border rounded hover:bg-white/20;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
 }

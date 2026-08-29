@@ -56,48 +56,46 @@ export default function Settings() {
   const handleReset = () => {
     reset()
     setShowResetModal(false)
-    localStorage.removeItem('fitnessUser')
-    localStorage.removeItem('userPlan')
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-white/60">Manage your profile and preferences</p>
+        <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Settings</h1>
+        <p className="text-white/60 text-sm md:text-base">Manage your profile and preferences</p>
       </div>
 
       {/* Profile Summary Card */}
-      <div className="bg-gradient-to-br from-dark-surface to-dark-elevated border border-dark-border rounded-2xl p-6">
-        <div className="flex items-start gap-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-2xl flex items-center justify-center">
-            <UserCheck className="w-10 h-10" />
+      <div className="bg-gradient-to-br from-dark-surface to-dark-elevated border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-xl md:rounded-2xl flex items-center justify-center">
+            <UserCheck className="w-8 h-8 md:w-10 md:h-10" />
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold mb-2">{user?.name || 'Student'}</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg md:text-xl font-bold mb-2 md:mb-3">{user?.name || 'Student'}</h2>
+            <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
               <div>
-                <span className="text-white/60">Fitness Level</span>
-                <p className="font-medium capitalize">{user?.fitnessLevel || 'Beginner'}</p>
+                <span className="text-white/60 text-xs md:text-sm">Fitness Level</span>
+                <p className="font-medium capitalize text-sm md:text-base">{user?.fitnessLevel || 'Beginner'}</p>
               </div>
               <div>
-                <span className="text-white/60">Goal</span>
-                <p className="font-medium capitalize">{user?.goal?.replace('_', ' ') || 'Build consistency'}</p>
+                <span className="text-white/60 text-xs md:text-sm">Goal</span>
+                <p className="font-medium capitalize text-sm md:text-base">{user?.goal?.replace('_', ' ') || 'Build consistency'}</p>
               </div>
               <div>
-                <span className="text-white/60">Workouts/Week</span>
-                <p className="font-medium">{user?.workoutsPerWeek || 3}</p>
+                <span className="text-white/60 text-xs md:text-sm">Workouts/Week</span>
+                <p className="font-medium text-sm md:text-base">{user?.workoutsPerWeek || 3}</p>
               </div>
               <div>
-                <span className="text-white/60">Session Length</span>
-                <p className="font-medium">{user?.availableTimePerSession || '30'} min</p>
+                <span className="text-white/60 text-xs md:text-sm">Session Length</span>
+                <p className="font-medium text-sm md:text-base">{user?.availableTimePerSession || '30'} min</p>
               </div>
             </div>
           </div>
           <button
             onClick={() => setShowResetModal(true)}
-            className="px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm text-accent-danger"
+            className="w-full sm:w-auto min-h-10 px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm text-accent-danger"
           >
             Reset All
           </button>
@@ -105,28 +103,28 @@ export default function Settings() {
       </div>
 
       {/* Settings Sections */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {sections.map((section, idx) => {
           const Icon = section.icon
           return (
-            <div key={idx} className="bg-dark-surface border border-dark-border rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-dark-border flex items-center gap-3">
-                <Icon className="w-5 h-5 text-accent-primary" />
-                <h2 className="font-bold">{section.label}</h2>
+            <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl overflow-hidden">
+              <div className="p-3 md:p-4 border-b border-dark-border flex items-center gap-2.5 md:gap-3">
+                <Icon className="w-4 h-4 md:w-5 md:h-5 text-accent-primary" />
+                <h2 className="font-bold text-sm md:text-base">{section.label}</h2>
               </div>
               <div className="divide-y divide-dark-border">
                 {section.items.map((item, itemIdx) => (
                   <button
                     key={itemIdx}
-                    className="w-full p-4 flex items-center justify-between hover:bg-dark-hover transition-colors"
+                    className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-dark-hover transition-colors min-h-16"
                   >
-                    <div className="text-left">
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-white/60">{item.desc}</div>
+                    <div className="text-left flex-1 min-w-0 pr-3">
+                      <div className="font-medium text-sm md:text-base">{item.label}</div>
+                      <div className="text-xs md:text-sm text-white/60 truncate">{item.desc}</div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-white/40">{item.value}</span>
-                      <ChevronRight className="w-5 h-5 text-white/40" />
+                    <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                      <span className="text-xs md:text-sm text-white/40 hidden sm:block">{item.value}</span>
+                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-white/40" />
                     </div>
                   </button>
                 ))}
@@ -137,24 +135,24 @@ export default function Settings() {
       </div>
 
       {/* Data & Privacy */}
-      <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-        <h2 className="text-xl font-bold mb-4">Data & Privacy</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-dark-elevated rounded-lg">
+      <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Data & Privacy</h2>
+        <div className="space-y-3 md:space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-dark-elevated rounded-lg">
             <div>
-              <h3 className="font-medium mb-1">Export Data</h3>
-              <p className="text-sm text-white/60">Download your fitness data</p>
+              <h3 className="font-medium mb-0.5 md:mb-1 text-sm md:text-base">Export Data</h3>
+              <p className="text-xs md:text-sm text-white/60">Download your fitness data</p>
             </div>
-            <button className="px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm">
+            <button className="w-full sm:w-auto min-h-10 px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm">
               Export
             </button>
           </div>
-          <div className="flex items-center justify-between p-4 bg-dark-elevated rounded-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-dark-elevated rounded-lg">
             <div>
-              <h3 className="font-medium mb-1">Delete Account</h3>
-              <p className="text-sm text-white/60">Permanently remove all data</p>
+              <h3 className="font-medium mb-0.5 md:mb-1 text-sm md:text-base">Delete Account</h3>
+              <p className="text-xs md:text-sm text-white/60">Permanently remove all data</p>
             </div>
-            <button className="px-4 py-2 border border-accent-danger/50 text-accent-danger hover:bg-accent-danger/10 rounded-lg text-sm">
+            <button className="w-full sm:w-auto min-h-10 px-4 py-2 border border-accent-danger/50 text-accent-danger hover:bg-accent-danger/10 rounded-lg text-sm">
               Delete
             </button>
           </div>
@@ -162,32 +160,32 @@ export default function Settings() {
       </div>
 
       {/* App Info */}
-      <div className="text-center text-white/40 text-sm">
+      <div className="text-center text-white/40 text-xs md:text-sm">
         <p>FitTrack v1.0.0 • Student Fitness Planner</p>
         <p className="mt-1">Built with React, TypeScript, and Tailwind CSS</p>
       </div>
 
       {/* Reset Modal */}
       {showResetModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-surface border border-dark-border rounded-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-dark-surface border border-dark-border rounded-2xl max-w-md w-full p-5 md:p-6">
             <div className="p-3 bg-accent-danger/20 rounded-xl w-fit mb-4">
               <RefreshCw className="w-6 h-6 text-accent-danger" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Reset All Data</h2>
-            <p className="text-white/60 mb-6">
+            <h2 className="text-lg md:text-xl font-bold mb-2">Reset All Data</h2>
+            <p className="text-white/60 mb-6 text-sm md:text-base">
               This will delete all your progress, settings, and start fresh. This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowResetModal(false)}
-                className="flex-1 px-4 py-3 border border-dark-border hover:bg-dark-hover rounded-lg font-medium"
+                className="flex-1 min-h-11 px-4 py-3 border border-dark-border hover:bg-dark-hover rounded-lg font-medium text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="flex-1 px-4 py-3 bg-accent-danger text-white rounded-lg font-bold"
+                className="flex-1 min-h-11 px-4 py-3 bg-accent-danger text-white rounded-lg font-bold text-sm"
               >
                 Reset Everything
               </button>

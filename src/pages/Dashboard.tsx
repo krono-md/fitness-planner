@@ -1,210 +1,141 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import {
-  Zap,
-  Clock,
-  Flame,
-  TrendingUp,
-  Target,
-  Moon,
-  ChevronRight,
-  Dumbbell,
-  Heart,
-  Award,
-  Coffee,
-  Play
-} from 'lucide-react'
+import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
-import { PersonalizationEngine } from '../engine/personalizationEngine'
+import { calculateStreak, calculateConsistency } from '../utils/stats'
+import PageHeader from '../components/PageHeader'
 
 export default function Dashboard() {
-  const { user, workoutSessions, sleepRecords, goals } = useAppStore()
-  const [generatedPlan, setGeneratedPlan] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(false)
-
-  React.useEffect(() => {
-    if (user) {
-      setLoading(true)
-      setTimeout(() => {
-        const plan = PersonalizationEngine.generatePlan(user)
-        setGeneratedPlan(plan)
-        setLoading(false)
-      }, 500)
-    }
-  }, [user])
+  const { user, workoutSessions, goals, userPlan } = useAppStore()
 
   if (!user) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-white/60">Please complete onboarding first.</p>
-      </div>
-    )
+    return <div className="whop-page text-center"><p className="text-white/45">Please complete onboarding first.</p></div>
   }
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-  const todaysWorkout = generatedPlan.find(workout => workout.dayOfWeek === today)
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const todaysWorkout = userPlan.find(w => w.dayOfWeek === today && w.exercises.length > 0)
   const completedWorkouts = workoutSessions.filter(s => s.completed).length
-  const thisWeeksGoal = goals.find(g => g.category === 'workouts' && !g.completed)
+  const weeklyGoal = goals.find(g => g.category === 'workouts' && !g.completed)
+  const streak = calculateStreak(workoutSessions)
+  const consistency = calculateConsistency(workoutSessions, user.workoutsPerWeek)
 
   const stats = [
-    { label: 'Weekly Goal', value: `${completedWorkouts}/${thisWeeksGoal?.target || 4}`, icon: Target, color: 'from-accent-primary to-accent-primary/60' },
-    { label: 'Workout Streak', value: '5 days', icon: Flame, color: 'from-accent-warning to-accent-warning/60' },
-    { label: 'Sleep Avg', value: `${user.averageSleep}h`, icon: Moon, color: 'from-accent-secondary to-accent-secondary/60' },
-    { label: 'Consistency', value: '82%', icon: TrendingUp, color: 'from-accent-success to-accent-success/60' },
-  ]
-
-  const quickActions = [
-    { icon: Clock, label: 'Schedule', desc: 'Find a time slot', color: 'bg-accent-primary/20 text-accent-primary' },
-    { icon: Coffee, label: 'Log Sleep', desc: 'Track recovery', color: 'bg-accent-secondary/20 text-accent-secondary' },
-    { icon: Award, label: 'Set Goal', desc: 'Stay motivated', color: 'bg-accent-success/20 text-accent-success' },
-    { icon: Heart, label: 'Check-in', desc: 'How are you?', color: 'bg-accent-warning/20 text-accent-warning' },
+    { label: 'Weekly Goal', value: `${completedWorkouts}/${weeklyGoal?.target || user.workoutsPerWeek}`, icon: Target, tile: 'bg-indigo-500/15 text-indigo-400' },
+    { label: 'Streak', value: `${streak}d`, icon: Flame, tile: 'bg-amber-500/15 text-amber-400' },
+    { label: 'Sleep', value: `${user.averageSleep}h`, icon: Moon, tile: 'bg-blue-500/15 text-blue-400' },
+    { label: 'Consistency', value: `${consistency}%`, icon: TrendingUp, tile: 'bg-emerald-500/15 text-emerald-400' },
   ]
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Good morning, {user.name?.split(' ')[0]}</h1>
-        <p className="text-white/50 text-lg">{today} • Let's build your fitness today</p>
-      </div>
+    <div className="whop-page">
+      <PageHeader
+        title={`${greeting}, ${user.name?.split(' ')[0]}`}
+        subtitle={`${today} · Your personalized fitness plan`}
+      />
 
-      {/* Today's Workout - Featured Card */}
-      <div className="bg-gradient-to-br from-dark-surface to-dark-elevated border border-dark-border rounded-2xl p-8 shadow-medium hover:shadow-large transition-shadow">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Today's Workout</h2>
-            <p className="text-white/50">{today} • {todaysWorkout ? todaysWorkout.duration : 30} minutes</p>
+      {/* Featured workout card */}
+      <div className="whop-featured p-5 md:p-6">
+        <div className="relative">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="whop-micro mb-1.5">Today's Workout</p>
+              <h2 className="text-lg font-bold tracking-tight">{todaysWorkout?.name || 'Rest Day'}</h2>
+            </div>
+            {todaysWorkout && (
+              <span className="whop-pill-accent capitalize">{todaysWorkout.difficulty}</span>
+            )}
           </div>
-          {todaysWorkout && (
-            <div className="px-4 py-2 bg-accent-primary/10 text-accent-primary rounded-full font-medium text-sm border border-accent-primary/20">
-              {todaysWorkout.difficulty}
+
+          {todaysWorkout ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-primary to-indigo-600 flex items-center justify-center shadow-glow-sm">
+                  <Dumbbell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-[13px] text-white/55">
+                    {todaysWorkout.duration} min · {todaysWorkout.exercises.length} exercises
+                  </p>
+                  <p className="text-2xs text-white/35 mt-0.5">{todaysWorkout.targetMuscles.join(' · ')}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Link to={`/workout/${todaysWorkout.id}`} className="whop-btn-primary flex-1">
+                  <Play className="w-3.5 h-3.5" /> Start Workout
+                </Link>
+                <Link to="/plan" className="whop-btn-ghost">Reschedule</Link>
+              </div>
+            </div>
+          ) : (
+            <div className="py-5 text-center">
+              <p className="text-[13px] text-white/45 mb-2">No workout today — enjoy your recovery.</p>
+              <Link to="/recovery" className="text-accent-primary text-[13px] font-medium hover:underline">Log sleep →</Link>
             </div>
           )}
         </div>
-
-        {loading ? (
-          <div className="animate-pulse space-y-4">
-            <div className="h-40 bg-dark-hover rounded-xl" />
-          </div>
-        ) : todaysWorkout ? (
-          <div className="space-y-6">
-            <div className="flex items-start gap-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Dumbbell className="w-10 h-10 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold mb-2">{todaysWorkout.name}</h3>
-                <p className="text-white/60 mb-3 text-[15px]">
-                  {todaysWorkout.exercises.length} exercises • {todaysWorkout.targetMuscles.join(', ')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {todaysWorkout.equipment.slice(0, 3).map((eq: string, idx: number) => (
-                    <span key={idx} className="px-3 py-1 bg-dark-hover rounded-lg text-sm text-white/70 border border-dark-border">
-                      {eq}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Link
-                to={`/workout/${todaysWorkout.id}`}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-primary/90 hover:to-accent-secondary/90 rounded-xl font-bold text-center transition-all hover:shadow-medium flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Start Workout
-              </Link>
-              <button className="px-6 py-4 border border-dark-border hover:bg-dark-hover rounded-xl font-medium transition-colors">
-                Reschedule
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-white/60 mb-4 text-lg">No workout scheduled for today.</p>
-            <button className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-medium">
-              Add a workout
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => {
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <div key={idx} className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-soft hover:shadow-medium transition-shadow hover:border-dark-border/80">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} opacity-20`}>
-                  <Icon className="w-5 h-5" />
+            <div key={stat.label} className="whop-stat">
+              <div className="relative flex items-center gap-2 mb-2.5">
+                <div className={`whop-icon-tile ${stat.tile}`}>
+                  <Icon className="w-3.5 h-3.5" />
                 </div>
+                <p className="whop-micro !tracking-[0.08em]">{stat.label}</p>
               </div>
-              <p className="text-white/60 text-sm font-medium mb-2">{stat.label}</p>
-              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="whop-stat-value">{stat.value}</div>
             </div>
           )
         })}
       </div>
 
-      {/* Quick Actions */}
+      {/* This week */}
       <div>
-        <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, idx) => {
-            const Icon = action.icon
-            return (
-              <button
-                key={idx}
-                className="bg-dark-surface border border-dark-border rounded-2xl p-6 hover:bg-dark-hover hover:border-dark-border/80 transition-all shadow-soft hover:shadow-medium group"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${action.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/40 transition-colors" />
-                </div>
-                <h3 className="font-bold mb-1 text-left">{action.label}</h3>
-                <p className="text-sm text-white/50 text-left">{action.desc}</p>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Upcoming Workouts */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">This Week</h2>
-          <Link to="/plan" className="text-accent-primary hover:text-accent-primary/80 text-sm font-medium flex items-center gap-1 transition-colors">
-            View all <ChevronRight className="w-4 h-4" />
+        <div className="flex items-center justify-between mb-2.5 px-0.5">
+          <h2 className="text-[13px] font-semibold text-white/70">This Week</h2>
+          <Link to="/plan" className="text-accent-primary text-2xs font-semibold flex items-center gap-0.5 hover:underline">
+            View all <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
-        <div className="space-y-3">
-          {generatedPlan.slice(0, 3).map((workout) => (
-            <div
-              key={workout.id}
-              className="bg-dark-surface border border-dark-border rounded-xl p-5 flex items-center justify-between hover:bg-dark-hover hover:border-dark-border/80 transition-all shadow-soft hover:shadow-medium"
-            >
-              <div className="flex-1">
-                <h3 className="font-bold mb-1">{workout.dayOfWeek}</h3>
-                <p className="text-sm text-white/60">{workout.name} • {workout.duration} min</p>
+        <div className="space-y-1.5">
+          {userPlan.filter(w => w.exercises.length > 0).slice(0, 4).map((workout) => (
+            <div key={workout.id} className="whop-card-hover !rounded-xl p-3.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-[13px]">{workout.dayOfWeek}</p>
+                <p className="text-2xs text-white/40 truncate">{workout.name} · {workout.duration} min</p>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1 bg-dark-elevated rounded-lg text-sm text-white/70 border border-dark-border">
-                  {workout.difficulty}
-                </div>
-                <Link
-                  to={`/workout/${workout.id}`}
-                  className="px-4 py-2 bg-dark-elevated hover:bg-dark-hover border border-dark-border rounded-lg text-sm font-medium transition-colors"
-                >
-                  Start
-                </Link>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="whop-pill capitalize">{workout.difficulty}</span>
+                <Link to={`/workout/${workout.id}`} className="whop-btn-ghost !py-1.5 !px-2.5 !text-2xs">Start</Link>
               </div>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {[
+          { icon: Clock, label: 'Calendar', path: '/calendar', desc: 'Classes & workouts', tile: 'bg-sky-500/15 text-sky-400' },
+          { icon: TrendingUp, label: 'Insights', path: '/insights', desc: 'Your patterns', tile: 'bg-yellow-500/15 text-yellow-400' },
+        ].map((action) => {
+          const Icon = action.icon
+          return (
+            <Link key={action.path} to={action.path} className="whop-card-hover !rounded-xl p-4 group">
+              <div className={`whop-icon-tile w-8 h-8 rounded-xl mb-2.5 ${action.tile}`}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <p className="font-semibold text-[13px] text-white/85">{action.label}</p>
+              <p className="text-2xs text-white/35 mt-0.5">{action.desc}</p>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

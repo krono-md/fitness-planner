@@ -184,7 +184,7 @@ export default function ExerciseLibrary() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input
@@ -192,17 +192,17 @@ export default function ExerciseLibrary() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search exercises or muscle groups..."
-            className="w-full bg-dark-surface border border-dark-border rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent-primary"
+            className="w-full bg-dark-surface border border-dark-border rounded-xl pl-12 pr-4 py-3 md:py-3.5 focus:outline-none focus:ring-2 focus:ring-accent-primary text-sm md:text-base"
           />
         </div>
-        <button className="px-6 py-3 border border-dark-border hover:bg-dark-hover rounded-xl font-medium flex items-center gap-2 transition-colors">
+        <button className="px-6 py-3 md:py-3.5 border border-dark-border hover:bg-dark-hover rounded-xl font-medium flex items-center justify-center gap-2 transition-colors text-sm md:text-base">
           <Filter className="w-4 h-4" />
           Filters
         </button>
       </div>
 
       {/* Category Tabs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 md:gap-4">
         {categories.map((cat) => {
           const Icon = cat.icon
           const isActive = selectedCategory === cat.id
@@ -210,27 +210,27 @@ export default function ExerciseLibrary() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(isActive ? null : cat.id)}
-              className={`p-5 rounded-2xl border transition-all shadow-soft hover:shadow-medium ${
+              className={`p-4 md:p-5 rounded-2xl border transition-all shadow-soft hover:shadow-medium min-h-[120px] md:min-h-0 ${
                 isActive
                   ? 'bg-accent-primary/10 border-accent-primary/30'
                   : 'bg-dark-surface border-dark-border hover:bg-dark-hover'
               }`}
             >
-              <Icon className={`w-6 h-6 mb-2 ${isActive ? 'text-accent-primary' : 'text-white/60'}`} />
-              <p className="font-bold text-lg">{cat.label}</p>
-              <p className="text-sm text-white/50">{cat.count} exercises</p>
+              <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-2 ${isActive ? 'text-accent-primary' : 'text-white/60'}`} />
+              <p className="font-bold text-sm md:text-lg">{cat.label}</p>
+              <p className="text-xs md:text-sm text-white/50">{cat.count} exercises</p>
             </button>
           )
         })}
       </div>
 
       {/* Difficulty Filter */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {['easy', 'moderate', 'hard'].map((diff) => (
           <button
             key={diff}
             onClick={() => setSelectedDifficulty(selectedDifficulty === diff ? null : diff)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-medium text-sm transition-colors ${
               selectedDifficulty === diff
                 ? difficultyColors[diff]
                 : 'bg-dark-surface border border-dark-border text-white/70 hover:bg-dark-hover'
@@ -293,10 +293,10 @@ export default function ExerciseLibrary() {
       {selectedExercise && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-dark-surface border border-dark-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-large">
-            <div className="p-8">
+            <div className="p-6 md:p-8">
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">{selectedExercise.name}</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-2">{selectedExercise.name}</h2>
                   <p className="text-white/60 capitalize">{selectedExercise.category}</p>
                 </div>
                 <span className={`px-4 py-2 rounded-lg font-medium ${difficultyColors[selectedExercise.difficulty]}`}>
@@ -304,24 +304,24 @@ export default function ExerciseLibrary() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-dark-elevated rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-accent-primary">{selectedExercise.sets}</p>
-                  <p className="text-sm text-white/60">Sets</p>
+              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
+                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
+                  <p className="text-xl md:text-2xl font-bold text-accent-primary">{selectedExercise.sets}</p>
+                  <p className="text-xs md:text-sm text-white/60">Sets</p>
                 </div>
-                <div className="bg-dark-elevated rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-accent-secondary">{selectedExercise.reps}</p>
-                  <p className="text-sm text-white/60">Reps</p>
+                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
+                  <p className="text-xl md:text-2xl font-bold text-accent-secondary">{selectedExercise.reps}</p>
+                  <p className="text-xs md:text-sm text-white/60">Reps</p>
                 </div>
-                <div className="bg-dark-elevated rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-accent-warning">{selectedExercise.restSeconds}s</p>
-                  <p className="text-sm text-white/60">Rest</p>
+                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
+                  <p className="text-xl md:text-2xl font-bold text-accent-warning">{selectedExercise.restSeconds}s</p>
+                  <p className="text-xs md:text-sm text-white/60">Rest</p>
                 </div>
               </div>
 
               <div className="mb-6">
                 <h3 className="font-bold mb-3">Instructions</h3>
-                <p className="text-white/80 leading-relaxed">{selectedExercise.instructions}</p>
+                <p className="text-white/80 leading-relaxed text-sm md:text-base">{selectedExercise.instructions}</p>
               </div>
 
               <div className="mb-6">
@@ -352,7 +352,7 @@ export default function ExerciseLibrary() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setSelectedExercise(null)}
                   className="flex-1 px-4 py-3 border border-dark-border hover:bg-dark-hover rounded-lg font-medium transition-colors"

@@ -1,6 +1,9 @@
 import React from 'react'
-import { Menu, Bell, Flame, User, Search } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Menu, Bell, Flame, Search } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
+import { calculateStreak } from '../utils/stats'
+import { getRouteMeta } from '../utils/routeMeta'
 
 interface TopBarProps {
   onMenuClick: () => void
@@ -9,91 +12,92 @@ interface TopBarProps {
   onNotificationOpen?: () => void
 }
 
-export default function TopBar({ onMenuClick, demoMode, onDemoSwitch, onNotificationOpen }: TopBarProps) {
-  const { user, notifications } = useAppStore()
+export default function TopBar({ onMenuClick, onDemoSwitch, onNotificationOpen }: TopBarProps) {
+  const { pathname } = useLocation()
+  const { user, notifications, workoutSessions } = useAppStore()
   const [showDemoMenu, setShowDemoMenu] = React.useState(false)
 
+  const meta = getRouteMeta(pathname)
   const unreadNotifications = notifications.filter(n => !n.read).length
+  const streak = calculateStreak(workoutSessions)
 
   const demoUsers = [
     { id: 'beginner', label: 'Beginner Student' },
     { id: 'busy', label: 'Busy Student' },
     { id: 'gym', label: 'Gym Student' },
     { id: 'home', label: 'Home Student' },
+    { id: 'intermediate', label: 'Intermediate Student' },
   ]
 
   return (
-    <div className="h-20 bg-dark-surface border-b border-dark-border px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Left */}
-      <div className="flex items-center gap-6">
+    <header className="h-[52px] flex-shrink-0 bg-dark-panel/90 backdrop-blur-xl border-b border-white/[0.055] px-4 lg:px-5 flex items-center justify-between sticky top-0 z-40">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
-          className="lg:hidden text-white/60 hover:text-white p-2 hover:bg-dark-hover rounded-lg transition-colors"
+          className="lg:hidden text-white/45 hover:text-white p-1.5 hover:bg-white/[0.05] rounded-lg flex-shrink-0"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-[18px] h-[18px]" />
         </button>
 
-        {/* Search */}
-        <div className="hidden md:flex items-center gap-3 px-4 py-2.5 bg-dark-elevated border border-dark-border rounded-xl max-w-xs">
-          <Search className="w-4 h-4 text-white/40" />
+        {/* Breadcrumb — Whop-style inline page context */}
+        <div className="hidden sm:flex items-center gap-1.5 min-w-0 text-[13px]">
+          <span className="text-white/30 font-medium">{meta.section}</span>
+          <span className="text-white/20">/</span>
+          <span className="text-white/75 font-semibold truncate">{meta.title}</span>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 ml-2 bg-white/[0.03] border border-white/[0.07] rounded-xl w-52 xl:w-64">
+          <Search className="w-3.5 h-3.5 text-white/25 flex-shrink-0" />
           <input
             type="text"
-            placeholder="Search workouts..."
-            className="flex-1 bg-transparent text-sm focus:outline-none placeholder-white/30"
+            placeholder="Search..."
+            className="flex-1 bg-transparent text-[12px] focus:outline-none placeholder-white/20 text-white/70"
           />
+          <kbd className="hidden xl:inline text-2xs text-white/20 border border-white/[0.08] rounded px-1 py-px">⌘K</kbd>
         </div>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-4">
-        {/* Demo Mode Switcher */}
+      <div className="flex items-center gap-1.5">
         <div className="relative">
           <button
             onClick={() => setShowDemoMenu(!showDemoMenu)}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/20 transition-colors border border-accent-primary/20"
+            className="px-2.5 py-1.5 rounded-lg text-2xs font-semibold text-accent-primary/90 bg-accent-primary/8 hover:bg-accent-primary/14 border border-accent-primary/15 transition-colors"
           >
-            Demo: {user?.name?.split(' ')[0] || 'User'}
+            Demo · {user?.name?.split(' ')[0] || 'User'}
           </button>
           {showDemoMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-dark-surface border border-dark-border rounded-xl shadow-lg z-50 overflow-hidden">
-              {demoUsers.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    onDemoSwitch?.(u.id)
-                    setShowDemoMenu(false)
-                  }}
-                  className="block w-full text-left px-4 py-3 hover:bg-dark-hover text-sm text-white/90 border-b border-dark-border last:border-b-0 transition-colors"
-                >
-                  {u.label}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowDemoMenu(false)} />
+              <div className="absolute right-0 mt-1.5 w-48 bg-dark-elevated border border-white/[0.08] rounded-xl shadow-large z-50 overflow-hidden py-1">
+                {demoUsers.map(u => (
+                  <button
+                    key={u.id}
+                    onClick={() => { onDemoSwitch?.(u.id); setShowDemoMenu(false) }}
+                    className="block w-full text-left px-3 py-2 hover:bg-white/[0.05] text-[12px] text-white/75"
+                  >
+                    {u.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
-        {/* Streak */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-dark-elevated border border-dark-border rounded-xl hover:bg-dark-hover transition-colors cursor-pointer">
-          <Flame className="w-5 h-5 text-accent-warning" />
-          <span className="font-semibold text-sm">5 day</span>
+        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07]">
+          <Flame className="w-3.5 h-3.5 text-accent-warning" />
+          <span className="font-semibold text-2xs text-white/70 tabular-nums">{streak}d</span>
         </div>
 
-        {/* Notifications */}
         <button
           onClick={onNotificationOpen}
-          className="relative p-2.5 text-white/60 hover:text-white hover:bg-dark-hover rounded-lg transition-colors"
+          className="relative p-2 text-white/45 hover:text-white/80 hover:bg-white/[0.05] rounded-lg transition-colors"
         >
-          <Bell className="w-5 h-5" />
+          <Bell className="w-[17px] h-[17px]" />
           {unreadNotifications > 0 && (
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent-danger rounded-full animate-pulse" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent-danger rounded-full ring-2 ring-dark-panel" />
           )}
         </button>
-
-        {/* Profile */}
-        <button className="p-2.5 text-white/60 hover:text-white hover:bg-dark-hover rounded-lg transition-colors">
-          <User className="w-5 h-5" />
-        </button>
       </div>
-    </div>
+    </header>
   )
 }

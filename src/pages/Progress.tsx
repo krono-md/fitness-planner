@@ -45,49 +45,49 @@ export default function Progress() {
   ]
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Progress</h1>
-        <p className="text-white/60">Track your fitness journey and achievements</p>
+        <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Progress</h1>
+        <p className="text-white/60 text-sm md:text-base">Track your fitness journey and achievements</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
+            <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-2">
+                <div className={`p-1.5 md:p-2 rounded-lg ${stat.bg}`}>
+                  <Icon className={`w-4 h-4 md:w-5 md:h-5 ${stat.color}`} />
                 </div>
-                <span className="text-sm text-white/60">{stat.label}</span>
+                <span className="text-xs md:text-sm text-white/60">{stat.label}</span>
               </div>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-xl md:text-2xl font-bold">{stat.value}</div>
             </div>
           )
         })}
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Weekly Activity */}
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-6">Weekly Activity</h2>
-          <div className="h-64">
+        <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Weekly Activity</h2>
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
                 <XAxis
                   dataKey="day"
                   stroke="#666"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
                   stroke="#666"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -95,7 +95,8 @@ export default function Progress() {
                   contentStyle={{
                     backgroundColor: '#1a1a1a',
                     border: '1px solid #262626',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    fontSize: '12px'
                   }}
                   labelStyle={{ color: '#fff' }}
                 />
@@ -110,22 +111,22 @@ export default function Progress() {
         </div>
 
         {/* Fitness Radar */}
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-6">Fitness Profile</h2>
-          <div className="h-64">
+        <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Fitness Profile</h2>
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={fitnessRadar}>
                 <PolarGrid stroke="#262626" />
                 <PolarAngleAxis
                   dataKey="area"
                   stroke="#666"
-                  fontSize={12}
+                  fontSize={10}
                 />
                 <PolarRadiusAxis
                   angle={30}
                   domain={[0, 100]}
                   stroke="#262626"
-                  fontSize={10}
+                  fontSize={8}
                 />
                 <Radar
                   name="Fitness"
@@ -141,21 +142,21 @@ export default function Progress() {
       </div>
 
       {/* Consistency Trend */}
-      <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-        <h2 className="text-xl font-bold mb-6">Consistency Trend</h2>
-        <div className="h-48">
+      <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Consistency Trend</h2>
+        <div className="h-36 md:h-48">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={consistencyData}>
               <XAxis
                 dataKey="month"
                 stroke="#666"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 stroke="#666"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
                 domain={[0, 100]}
@@ -165,7 +166,8 @@ export default function Progress() {
                 contentStyle={{
                   backgroundColor: '#1a1a1a',
                   border: '1px solid #262626',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  fontSize: '12px'
                 }}
                 labelStyle={{ color: '#fff' }}
                 formatter={(value: number) => [`${value}%`, 'Completion Rate']}
@@ -174,8 +176,8 @@ export default function Progress() {
                 type="monotone"
                 dataKey="rate"
                 stroke="#10b981"
-                strokeWidth={3}
-                dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
+                strokeWidth={2}
+                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -184,18 +186,18 @@ export default function Progress() {
 
       {/* Achievements */}
       <div>
-        <h2 className="text-xl font-bold mb-4">Recent Achievements</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Recent Achievements</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {achievements.map((achievement, idx) => {
             const Icon = achievement.icon
             return (
-              <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl p-4 flex items-start gap-4">
-                <div className="p-3 bg-gradient-to-br from-accent-warning/20 to-accent-warning/5 rounded-xl">
-                  <Icon className="w-6 h-6 text-accent-warning" />
+              <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl p-3 md:p-4 flex items-start gap-3 md:gap-4">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-accent-warning/20 to-accent-warning/5 rounded-xl">
+                  <Icon className="w-5 h-5 md:w-6 md:h-6 text-accent-warning" />
                 </div>
                 <div>
-                  <h3 className="font-bold mb-1">{achievement.title}</h3>
-                  <p className="text-sm text-white/60 mb-2">{achievement.desc}</p>
+                  <h3 className="font-bold mb-0.5 md:mb-1 text-sm md:text-base">{achievement.title}</h3>
+                  <p className="text-xs md:text-sm text-white/60 mb-1 md:mb-2">{achievement.desc}</p>
                   <span className="text-xs text-white/40">{achievement.date}</span>
                 </div>
               </div>
@@ -205,18 +207,18 @@ export default function Progress() {
       </div>
 
       {/* Goal Progress */}
-      <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-        <h2 className="text-xl font-bold mb-6">Goal Progress</h2>
-        <div className="space-y-4">
+      <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Goal Progress</h2>
+        <div className="space-y-3 md:space-y-4">
           {[
             { title: 'Complete 20 workouts this month', current: 12, target: 20, color: 'bg-accent-primary' },
             { title: 'Maintain 7-day streak', current: 5, target: 7, color: 'bg-accent-warning' },
             { title: 'Log sleep for 30 days', current: 18, target: 30, color: 'bg-accent-secondary' },
           ].map((goal, idx) => (
-            <div key={idx} className="space-y-2">
+            <div key={idx} className="space-y-1.5 md:space-y-2">
               <div className="flex justify-between">
-                <span className="font-medium">{goal.title}</span>
-                <span className="text-white/60">{goal.current}/{goal.target}</span>
+                <span className="font-medium text-sm md:text-base">{goal.title}</span>
+                <span className="text-white/60 text-sm">{goal.current}/{goal.target}</span>
               </div>
               <div className="h-2 bg-dark-elevated rounded-full overflow-hidden">
                 <div

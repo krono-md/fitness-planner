@@ -1,5 +1,5 @@
 import React from 'react'
-import { Bell, X, ChevronRight, Zap, Clock, CheckCircle, Flame, Target } from 'lucide-react'
+import { Bell, X, Zap, Clock, CheckCircle, Flame, Target } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 
 interface NotificationCenterProps {
@@ -8,83 +8,75 @@ interface NotificationCenterProps {
 }
 
 export default function NotificationCenter({ open, onClose }: NotificationCenterProps) {
-  const { notifications, markNotificationRead } = useAppStore()
+  const { notifications, markNotificationRead, clearNotifications } = useAppStore()
 
   if (!open) return null
 
   const unreadCount = notifications.filter(n => !n.read).length
 
+  const typeConfig: Record<string, { icon: React.ReactNode; tile: string }> = {
+    workout_reminder: { icon: <Clock className="w-3.5 h-3.5" />, tile: 'bg-indigo-500/15 text-indigo-400' },
+    streak: { icon: <Flame className="w-3.5 h-3.5" />, tile: 'bg-amber-500/15 text-amber-400' },
+    achievement: { icon: <CheckCircle className="w-3.5 h-3.5" />, tile: 'bg-emerald-500/15 text-emerald-400' },
+    plan_adjustment: { icon: <Zap className="w-3.5 h-3.5" />, tile: 'bg-violet-500/15 text-violet-400' },
+    completion: { icon: <Target className="w-3.5 h-3.5" />, tile: 'bg-sky-500/15 text-sky-400' },
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="flex-1 bg-black/65 backdrop-blur-[2px]" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="w-96 bg-dark-surface border-l border-dark-border h-full shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-dark-border flex items-center justify-between bg-dark-surface">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary/20 rounded-lg">
-              <Bell className="w-5 h-5 text-accent-primary" />
+      <div className="w-full sm:w-[360px] bg-dark-surface border-l border-white/[0.06] h-full shadow-large flex flex-col max-w-full animate-slide-up">
+        <div className="px-4 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="whop-icon-tile w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400">
+              <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Notifications</h2>
+              <h2 className="text-[15px] font-bold">Notifications</h2>
               {unreadCount > 0 && (
-                <span className="text-xs text-accent-primary font-medium">{unreadCount} unread</span>
+                <p className="text-2xs text-accent-primary font-medium">{unreadCount} unread</p>
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-dark-hover rounded-lg transition-colors">
-            <X className="w-5 h-5 text-white/60" />
+          <button onClick={onClose} className="p-1.5 hover:bg-white/[0.05] rounded-lg text-white/40 hover:text-white/70">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
           {notifications.length === 0 ? (
-            <div className="text-center py-12 text-white/40">
-              <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>All caught up!</p>
+            <div className="text-center py-16 text-white/30">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-25" />
+              <p className="text-[13px]">All caught up!</p>
             </div>
           ) : (
             notifications.map((notification) => {
               const isRead = notification.read
+              const config = typeConfig[notification.type] ?? typeConfig.completion
               return (
                 <div
                   key={notification.id}
                   onClick={() => markNotificationRead(notification.id)}
-                  className={`
-                    p-4 rounded-xl border transition-all cursor-pointer
-                    ${isRead
-                      ? 'bg-dark-elevated border-dark-border hover:bg-dark-hover'
-                      : 'bg-accent-primary/5 border-accent-primary/20 hover:bg-accent-primary/10'
-                    }
-                  `}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                    isRead
+                      ? 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
+                      : 'bg-accent-primary/[0.04] border-accent-primary/15 hover:bg-accent-primary/[0.07]'
+                  }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg mt-1 ${
-                      notification.type === 'workout_reminder' ? 'bg-accent-primary/20' :
-                      notification.type === 'streak' ? 'bg-accent-warning/20' :
-                      notification.type === 'achievement' ? 'bg-accent-success/20' :
-                      'bg-accent-secondary/20'
-                    }`}>
-                      {notification.type === 'workout_reminder' && <Clock className="w-4 h-4 text-accent-primary" />}
-                      {notification.type === 'streak' && <Flame className="w-4 h-4 text-accent-warning" />}
-                      {notification.type === 'achievement' && <CheckCircle className="w-4 h-4 text-accent-success" />}
-                      {notification.type === 'plan_adjustment' && <Zap className="w-4 h-4 text-accent-secondary" />}
-                      {notification.type === 'completion' && <Target className="w-4 h-4 text-accent-primary" />}
+                  <div className="flex items-start gap-2.5">
+                    <div className={`whop-icon-tile w-7 h-7 rounded-lg flex-shrink-0 ${config.tile}`}>
+                      {config.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <h4 className="font-medium text-sm">{notification.title}</h4>
-                        <span className="text-xs text-white/40">
-                          {new Date(notification.createdAt).toLocaleDateString()}
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-[13px] leading-tight">{notification.title}</h4>
+                        <span className="text-2xs text-white/30 flex-shrink-0">
+                          {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <p className="text-sm text-white/70 mb-2">{notification.message}</p>
-                      {!isRead && (
-                        <div className="w-2 h-2 bg-accent-primary rounded-full" />
-                      )}
+                      <p className="text-[12px] text-white/50 mt-0.5 line-clamp-2 leading-relaxed">{notification.message}</p>
+                      {!isRead && <div className="w-1.5 h-1.5 bg-accent-primary rounded-full mt-1.5" />}
                     </div>
                   </div>
                 </div>
@@ -93,16 +85,12 @@ export default function NotificationCenter({ open, onClose }: NotificationCenter
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-dark-border">
+        <div className="p-3 border-t border-white/[0.06]">
           <button
-            onClick={() => {
-              // Clear all notifications
-              // Implementation would go here
-            }}
-            className="w-full py-3 text-sm text-white/60 hover:text-white hover:bg-dark-hover rounded-lg transition-colors"
+            onClick={clearNotifications}
+            className="w-full py-2.5 text-2xs font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-colors"
           >
-            Clear all notifications
+            Clear all
           </button>
         </div>
       </div>

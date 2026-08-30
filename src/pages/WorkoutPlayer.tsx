@@ -231,19 +231,19 @@ export default function WorkoutPlayer() {
             <p className="text-white/60 text-center mb-8">{currentExercise?.targetMuscles?.join(', ')}</p>
 
             {/* Sets & Reps */}
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-8 mb-8">
-              <div className="grid grid-cols-3 gap-6 text-center">
+            <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 md:p-8 mb-8">
+              <div className="grid grid-cols-3 gap-4 md:gap-6 text-center">
                 <div>
-                  <div className="text-3xl font-bold text-accent-primary">{currentExercise?.sets}</div>
-                  <div className="text-sm text-white/60 mt-1">Sets</div>
+                  <div className="text-2xl md:text-3xl font-bold text-accent-primary">{currentExercise?.sets}</div>
+                  <div className="text-xs md:text-sm text-white/60 mt-1 md:mt-2">Sets</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-accent-secondary">{currentExercise?.reps}</div>
-                  <div className="text-sm text-white/60 mt-1">Reps</div>
+                  <div className="text-2xl md:text-3xl font-bold text-accent-secondary">{currentExercise?.reps}</div>
+                  <div className="text-xs md:text-sm text-white/60 mt-1 md:mt-2">Reps</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-accent-warning">{currentExercise?.restSeconds}s</div>
-                  <div className="text-sm text-white/60 mt-1">Rest</div>
+                  <div className="text-2xl md:text-3xl font-bold text-accent-warning">{currentExercise?.restSeconds}s</div>
+                  <div className="text-xs md:text-sm text-white/60 mt-1 md:mt-2">Rest</div>
                 </div>
               </div>
             </div>

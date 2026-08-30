@@ -1,36 +1,36 @@
 import React from 'react'
-import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import BottomNav from './BottomNav'
 
 interface LayoutProps {
   children: React.ReactNode
   onDemoSwitch?: (userId: string) => void
   demoMode?: boolean
-  onNotificationOpen?: () => void
+  onMoreClick?: () => void
+  moreMenuOpen?: boolean
 }
 
-export default function Layout({ children, onDemoSwitch, demoMode, onNotificationOpen }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+const defaultOnMoreClick = () => {}
 
+export default function Layout({ children, onDemoSwitch, demoMode, onMoreClick = defaultOnMoreClick, moreMenuOpen }: LayoutProps) {
   return (
-    <div className="flex h-screen bg-dark-bg text-white/90 overflow-hidden">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex flex-col min-h-screen bg-dark-bg text-white/90">
+      {/* Top Bar */}
+      <TopBar
+        onMenuClick={onMoreClick}
+        demoMode={demoMode}
+        onDemoSwitch={onDemoSwitch}
+      />
 
-      {/* Main panel — Whop content area separation */}
-      <div className="flex-1 flex flex-col min-w-0 lg:rounded-tl-2xl lg:border-l lg:border-t border-white/[0.055] bg-dark-panel overflow-hidden">
-        <TopBar
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-          demoMode={demoMode}
-          onDemoSwitch={onDemoSwitch}
-          onNotificationOpen={onNotificationOpen}
-        />
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto pb-20">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {children}
+        </div>
+      </main>
 
-        <main className="flex-1 overflow-auto bg-mesh">
-          <div className="max-w-6xl mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Bottom Navigation */}
+      <BottomNav onMoreClick={onMoreClick} />
     </div>
   )
 }

@@ -92,7 +92,7 @@ export default function Dashboard() {
                 <Link to={`/workout/${todaysWorkout.id}`} className="whop-btn-primary flex-1 transition-all duration-200 hover:scale-105 active:scale-95">
                   <Play className="w-3.5 h-3.5" /> Start Workout
                 </Link>
-                <button onClick={() => regeneratePlan()} className="whop-btn-ghost transition-all duration-200 flex items-center gap-1.5">
+                <button onClick={() => regeneratePlan()} className="whop-btn-ghost transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap">
                   <RefreshCw className="w-3.5 h-3.5" /> Adjust
                 </button>
               </div>

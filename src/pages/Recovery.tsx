@@ -35,10 +35,17 @@ export default function Recovery() {
   const avgWakeTime = mockSleepData[mockSleepData.length - 1]?.wakeTime || '07:00'
 
   const handleLogSleep = () => {
+    // Use the local-date key, not UTC — `toISOString().split('T')[0]` is UTC
+    // and lands on the wrong day east of UTC, which would make the sleep
+    // trend chart (Stage 6) shift this entry by a day.
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
     const record = {
       id: `sleep_${Date.now()}`,
       userId: user?.id || '',
-      date: new Date().toISOString().split('T')[0],
+      date: `${y}-${m}-${d}`,
       bedtime: newSleep.bedtime,
       wakeTime: newSleep.wakeTime,
       duration: newSleep.duration,

@@ -157,11 +157,99 @@ const LOCATION_LABEL: Record<string, string> = {
 }
 
 export class PersonalizationEngine {
-  static generatePlan(profile: UserProfile): Workout[] {
+  /**
+   * Format a Date as YYYY-MM-DD in local time. We use this everywhere we
+   * compare "what day did this happen on" because `toISOString().split('T')[0]`
+   * is UTC and lands on the wrong day in any timezone east of UTC.
+   */
+  private static localDateKey(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  /**
+   * Get the sleep record for a specific date.
+   * Returns null if no sleep record exists for that exact date.
+   * Sleep records are date-specific — a poor night on Friday should not
+   * soften Tuesday's workout.
+   *
+   * Both sides are normalized to a local-time YYYY-MM-DD key before
+   * comparison, so the lookup is timezone-stable regardless of whether
+   * `record.date` is a YYYY-MM-DD string ("2026-09-01") or a full ISO
+   * timestamp ("2026-09-01T07:00:00.000Z").
+   */
+  static getRecentSleepRecord(sleepRecords: any[], dateStr: string): any | null {
+    if (!sleepRecords || sleepRecords.length === 0) return null
+    const givenKey = this.localDateKey(new Date(dateStr))
+
+    for (const record of sleepRecords) {
+      const recordKey = this.localDateKey(new Date(record.date))
+      if (recordKey === givenKey) {
+        return record
+      }
+    }
+    return null
+  }
+
+  /**
+   * Determine if a workout should be softened based on recent sleep quality.
+   * Returns { soften: boolean, reason: string } if softening is needed.
+   */
+  static shouldSoftenForSleep(sleepRecord: any | null): { soften: boolean; reason: string } {
+    if (!sleepRecord) return { soften: false, reason: '' }
+    const duration = sleepRecord.duration || 0
+    const quality = sleepRecord.quality || 'fair'
+
+    // Poor sleep (low duration OR poor quality) → soften
+    const isPoorSleep = duration < 6 || quality === 'poor' || quality === 'fair'
+
+    if (isPoorSleep) {
+      let reason = ''
+      if (duration < 6) {
+        reason = `Only ${duration}h of sleep — too little for a full workout.`
+      } else if (quality === 'poor') {
+        reason = `Sleep quality was poor — better to recovery today.`
+      } else {
+        reason = `Low sleep debt – plan is softened for recovery.`
+      }
+      return { soften: true, reason }
+    }
+    return { soften: false, reason: '' }
+  }
+
+  /**
+   * Generate a workout adjusted for poor sleep.
+   * This creates a "sleep-adapted" workout with reduced intensity.
+   */
+  static generateSleepAdaptedWorkout(
+    baseWorkout: Workout,
+    reason: string
+  ): Workout {
+    // Create a lighter version: fewer exercises, easier difficulty
+    const adaptedExercises = baseWorkout.exercises.slice(0, Math.max(2, Math.ceil(baseWorkout.exercises.length / 2)))
+    const adapted = adaptedExercises.map(ex => ({
+      ...ex,
+      sets: Math.max(2, Math.round(ex.sets * 0.7)),
+      restSeconds: ex.restSeconds + 15,
+    }))
+
+    return {
+      ...baseWorkout,
+      name: baseWorkout.name + ' (Light)',
+      duration: Math.max(10, Math.round(baseWorkout.duration * 0.7)),
+      difficulty: 'easy' as const,
+      exercises: adapted,
+      reasoning: `Adjusted for recovery: ${reason}`,
+    }
+  }
+
+  static generatePlan(profile: UserProfile, sleepRecords: any[] = [], forDate = new Date()): Workout[] {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     let workoutsPerWeek = profile.workoutsPerWeek
 
-    // Reduce frequency for high stress or low sleep
+    // Reduce frequency for high stress or low sleep (historical)
     if (profile.scheduleChangesFrequently && profile.stressLevel === 'high') {
       workoutsPerWeek = Math.max(2, workoutsPerWeek - 1)
     }
@@ -181,30 +269,61 @@ export class PersonalizationEngine {
     const difficulty = this.calculateDifficulty(profile)
     const workouts: Workout[] = []
 
+    // Check if sleep adaptation should apply for the target date
+    const targetDayName = forDate.toLocaleDateString('en-US', { weekday: 'long' })
+    const sleepRecord = this.getRecentSleepRecord(sleepRecords, forDate.toISOString())
+    const sleepAdaptation = this.shouldSoftenForSleep(sleepRecord)
+
     for (let i = 0; i < workoutsPerWeek; i++) {
       const day = selectedDays[i % selectedDays.length]
       const template = templates[i % templates.length]
-      const exercises = this.filterExercises(template.exercises, profile)
+      let exercises = this.filterExercises(template.exercises, profile)
       const windowInfo = this.findWorkoutWindow(profile, day)
-      const reasoning = this.buildReasoning(profile, {
-        name: template.name,
-        day,
-        duration,
-        difficulty,
-        exercises,
-        window: windowInfo,
-      })
+      let workoutDuration = duration
+      let workoutDifficulty = difficulty
+      let reasoning = ''
+
+      // Apply sleep adaptation if this is the target day and sleep was poor
+      if (day === targetDayName && sleepAdaptation.soften) {
+        // Soften the workout: reduce exercises, lower intensity
+        exercises = exercises.slice(0, Math.max(2, Math.ceil(exercises.length / 2)))
+          .map(ex => ({
+            ...ex,
+            sets: Math.max(2, Math.round(ex.sets * 0.7)),
+            restSeconds: ex.restSeconds + 15,
+          }))
+        workoutDuration = Math.max(10, Math.round(duration * 0.7))
+        workoutDifficulty = 'easy'
+        reasoning = this.buildReasoning(profile, {
+          name: template.name + ' (Light)',
+          day,
+          duration: workoutDuration,
+          difficulty: workoutDifficulty,
+          exercises,
+          window: windowInfo,
+          sleepReason: sleepAdaptation.reason,
+        })
+      } else {
+        reasoning = this.buildReasoning(profile, {
+          name: template.name,
+          day,
+          duration,
+          difficulty,
+          exercises,
+          window: windowInfo,
+        })
+      }
 
       workouts.push({
         id: `workout_${i}`,
-        name: template.name,
+        name: day === targetDayName && sleepAdaptation.soften ? template.name + ' (Light)' : template.name,
         dayOfWeek: day,
-        duration,
-        difficulty,
+        duration: day === targetDayName && sleepAdaptation.soften ? workoutDuration : duration,
+        difficulty: day === targetDayName && sleepAdaptation.soften ? workoutDifficulty : difficulty,
         targetMuscles: template.targetMuscles,
         exercises,
         equipment: template.equipment,
-        estimatedCalories: Math.round(duration * 6),
+        estimatedCalories: Math.round((day === targetDayName && sleepAdaptation.soften ? workoutDuration : duration) * 6),
         notes: windowInfo.window
           ? `Suggested window: ${windowInfo.window}. ${template.notes}`
           : template.notes,
@@ -248,7 +367,7 @@ export class PersonalizationEngine {
    */
   static buildReasoning(
     profile: UserProfile,
-    ctx: { name: string; day: string; duration: number; difficulty: string; exercises: Exercise[]; window: WorkoutWindow }
+    ctx: { name: string; day: string; duration: number; difficulty: string; exercises: Exercise[]; window: WorkoutWindow; sleepReason?: string }
   ): string {
     const parts: string[] = []
     const goalLabel = GOAL_LABEL[profile.goal] || 'your goal'
@@ -284,15 +403,22 @@ export class PersonalizationEngine {
     // Schedule basis (window or fallback) — cite the actual block before/after
     parts.push(this.formatScheduleReason(ctx.day, windowInfo, profile))
 
-    // Stress / sleep / recovery adjustments
-    if (profile.stressLevel === 'high') {
-      parts.push(`Intensity dialed back because you reported high stress.`)
-    }
-    if (profile.averageSleep < 6.5) {
-      parts.push(`Shorter session to respect your current sleep debt.`)
-    }
-    if (profile.recoveryQuality === 'poor') {
-      parts.push(`Easier load to support recovery.`)
+    // Sleep adaptation reason (takes priority - shown first in reasoning)
+    if (ctx.sleepReason) {
+      parts.push(ctx.sleepReason)
+      // When sleep is poor, also note that intensity is dialed back
+      parts.push(`Intensity dialed back to support your recovery today.`)
+    } else {
+      // Stress / sleep / recovery adjustments (only if no sleep adaptation active)
+      if (profile.stressLevel === 'high') {
+        parts.push(`Intensity dialed back because you reported high stress.`)
+      }
+      if (profile.averageSleep < 6.5) {
+        parts.push(`Shorter session to respect your current sleep debt.`)
+      }
+      if (profile.recoveryQuality === 'poor') {
+        parts.push(`Easier load to support recovery.`)
+      }
     }
 
     return parts.join(' ')

@@ -45,6 +45,7 @@ interface AppState {
   setUser: (user: UserProfile) => void
   setUserPlan: (plan: Workout[]) => void
   regeneratePlan: () => void
+  regeneratePlanWithSleep: () => void
   adjustTodayWorkout: (reason: AdjustReason) => void
   rescheduleWorkout: (workoutId: string, newDay: string) => void
   skipWorkout: (workoutId: string) => void
@@ -74,16 +75,23 @@ export const useAppStore = create<AppState>()(
       demoMode: false,
 
       setUser: (user) => {
-        const plan = PersonalizationEngine.generatePlan(user)
+        const plan = PersonalizationEngine.generatePlan(user, [])
         set({ user, userPlan: plan })
       },
 
       setUserPlan: (plan) => set({ userPlan: plan }),
 
       regeneratePlan: () => {
-        const { user } = get()
+        const { user, sleepRecords } = get()
         if (user) {
-          set({ userPlan: PersonalizationEngine.generatePlan(user) })
+          set({ userPlan: PersonalizationEngine.generatePlan(user, sleepRecords) })
+        }
+      },
+
+      regeneratePlanWithSleep: () => {
+        const { user, sleepRecords } = get()
+        if (user) {
+          set({ userPlan: PersonalizationEngine.generatePlan(user, sleepRecords) })
         }
       },
 
@@ -215,9 +223,13 @@ export const useAppStore = create<AppState>()(
         })
       },
 
-      addSleepRecord: (record) => set((state) => ({
-        sleepRecords: [...state.sleepRecords, record],
-      })),
+      addSleepRecord: (record) => {
+        set((state) => ({
+          sleepRecords: [...state.sleepRecords, record],
+        }))
+        // Regenerate plan so the new sleep data influences future workouts
+        get().regeneratePlanWithSleep()
+      },
 
       addGoal: (goal) => set((state) => ({
         goals: [...state.goals, goal],

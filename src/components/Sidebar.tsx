@@ -1,8 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, CalendarDays, Zap, TrendingUp, Moon,
-  Dumbbell, Target, Lightbulb, Settings, X, BookOpen, ChevronDown,
+  LayoutDashboard, Moon, Dumbbell, X, Zap, ChevronDown,
 } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 import { getInitials } from '../utils/stats'
@@ -14,33 +13,11 @@ interface SidebarProps {
 
 const navSections = [
   {
-    label: 'Overview',
+    label: 'Main',
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/', color: 'bg-indigo-500/15 text-indigo-400' },
-      { icon: CalendarDays, label: 'My Plan', path: '/plan', color: 'bg-violet-500/15 text-violet-400' },
       { icon: Dumbbell, label: 'Workouts', path: '/workouts', color: 'bg-amber-500/15 text-amber-400' },
-      { icon: CalendarDays, label: 'Calendar', path: '/calendar', color: 'bg-sky-500/15 text-sky-400' },
-    ],
-  },
-  {
-    label: 'Health',
-    items: [
       { icon: Moon, label: 'Sleep & Recovery', path: '/recovery', color: 'bg-blue-500/15 text-blue-400' },
-      { icon: TrendingUp, label: 'Progress', path: '/progress', color: 'bg-emerald-500/15 text-emerald-400' },
-    ],
-  },
-  {
-    label: 'Library',
-    items: [
-      { icon: BookOpen, label: 'Exercises', path: '/exercises', color: 'bg-orange-500/15 text-orange-400' },
-      { icon: Target, label: 'Goals', path: '/goals', color: 'bg-rose-500/15 text-rose-400' },
-      { icon: Lightbulb, label: 'Insights', path: '/insights', color: 'bg-yellow-500/15 text-yellow-400' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { icon: Settings, label: 'Settings', path: '/settings', color: 'bg-white/[0.08] text-white/45' },
     ],
   },
 ]

@@ -47,6 +47,7 @@ interface AppState {
   regeneratePlan: () => void
   rescheduleWorkout: (workoutId: string, newDay: string) => void
   skipWorkout: (workoutId: string) => void
+  markWorkoutSkipped: (workoutId: string) => void
   addWorkoutSession: (session: WorkoutSession) => void
   updateWorkoutSession: (session: WorkoutSession) => void
   addSleepRecord: (record: SleepRecord) => void
@@ -108,6 +109,23 @@ export const useAppStore = create<AppState>()(
         const idx = days.indexOf(workout.dayOfWeek)
         const nextDay = days[(idx + 1) % 7]
         get().rescheduleWorkout(workoutId, nextDay)
+      },
+
+      markWorkoutSkipped: (workoutId) => {
+        set((state) => ({
+          userPlan: state.userPlan.map(w =>
+            w.id === workoutId ? { ...w, skipped: true } : w
+          ),
+        }))
+        get().addNotification({
+          id: `notif_${Date.now()}`,
+          userId: get().user?.id || '',
+          type: 'plan_adjustment',
+          title: 'Workout skipped',
+          message: 'We removed this workout from your plan for today.',
+          read: false,
+          createdAt: new Date().toISOString(),
+        })
       },
 
       addWorkoutSession: (session) => set((state) => {

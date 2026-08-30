@@ -52,16 +52,16 @@ export default function WorkoutPlayer() {
     return () => clearInterval(interval)
   }, [isPlaying, isPaused, isResting, restTime])
 
-  const currentExercise = workout?.exercises[currentExerciseIndex]
+  const currentExercise = workout?.exercises?.[currentExerciseIndex]
 
   const handleStart = () => {
     setIsPlaying(true)
   }
 
   const handleNext = () => {
-    if (currentExerciseIndex < workout.exercises.length - 1) {
+    if (currentExerciseIndex < (workout?.exercises?.length || 0) - 1) {
       setIsResting(true)
-      setRestTime(currentExercise.restSeconds)
+      setRestTime(currentExercise?.restSeconds || 60)
       setCurrentExerciseIndex(prev => prev + 1)
     } else {
       setShowCompletion(true)
@@ -162,42 +162,58 @@ export default function WorkoutPlayer() {
 
   return (
     <div className="min-h-screen bg-dark-bg flex flex-col">
-      {/* Header */}
-      <div className="bg-dark-surface/95 backdrop-blur-xl border-b border-white/[0.06] p-4">
+      {/* Header with blur effect */}
+      <div className="bg-dark-surface/90 backdrop-blur-xl border-b border-white/[0.06] p-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="p-2 hover:bg-dark-hover rounded-lg">
+          <button onClick={() => navigate('/')} className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors">
             <X className="w-6 h-6" />
           </button>
           <div className="text-center">
             <h1 className="font-bold">{workout.name}</h1>
             <p className="text-sm text-white/60">Exercise {currentExerciseIndex + 1} of {workout.exercises.length}</p>
           </div>
-          <button className="p-2 hover:bg-dark-hover rounded-lg">
+          <button className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors">
             <Volume2 className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mt-4 h-2 bg-dark-elevated rounded-full overflow-hidden">
+        {/* Progress Bar with gradient */}
+        <div className="mt-4 h-2 bg-white/[0.06] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-accent-primary to-accent-secondary transition-all duration-300"
-            style={{ width: `${((currentExerciseIndex + 1) / workout.exercises.length) * 100}%` }}
+            className="h-full bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary transition-all duration-500 ease-out"
+            style={{
+              width: `${((currentExerciseIndex + 1) / workout.exercises.length) * 100}%`,
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 2s linear infinite'
+            }}
           />
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 p-6 flex flex-col">
-        {/* Rest Overlay */}
+        {/* Rest Overlay with premium animation */}
         {isResting && (
-          <div className="fixed inset-0 bg-dark-bg/95 flex items-center justify-center z-50 p-4">
-            <div className="text-center max-w-sm w-full">
-              <p className="text-xl text-white/60 mb-4">Rest</p>
-              <div className="text-7xl md:text-8xl font-bold mb-4">{restTime}</div>
-              <p className="text-white/60 mb-6 md:mb-8">Next: {workout.exercises[currentExerciseIndex + 1]?.name}</p>
+          <div className="fixed inset-0 bg-dark-bg/98 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            {/* Animated background circles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-primary/5 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-secondary/5 rounded-full animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            </div>
+
+            <div className="text-center max-w-sm w-full relative z-10">
+              <p className="text-lg md:text-xl text-white/50 mb-6 font-medium tracking-wide uppercase">Rest Period</p>
+              <div className="relative mb-6">
+                <div className="text-8xl md:text-9xl font-bold tabular-nums">{restTime}</div>
+                <div className="text-white/30 text-sm mt-2">seconds remaining</div>
+              </div>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 mb-8">
+                <p className="text-white/60 text-sm mb-1">Up Next</p>
+                <p className="font-semibold text-lg">{workout.exercises[currentExerciseIndex + 1]?.name}</p>
+              </div>
               <button
                 onClick={() => setIsResting(false)}
-                className="min-h-12 px-8 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-lg"
+                className="min-h-12 px-8 py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-lg hover:scale-105 active:scale-95 transition-transform"
               >
                 Skip Rest
               </button>

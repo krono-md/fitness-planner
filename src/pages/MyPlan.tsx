@@ -77,32 +77,46 @@ export default function MyPlan() {
       {/* Week or Month view */}
       {view === 'week' ? (
         <div className="whop-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/[0.06]">
+          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
             <h2 className="font-bold">Weekly Schedule</h2>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-accent-success rounded-full animate-pulse" />
+              <span className="text-xs text-white/40">{activeWorkouts.length} workouts</span>
+            </div>
           </div>
-          <div className="divide-y divide-white/[0.05]">
+          <div className="divide-y divide-white/[0.04]">
             {daysOfWeek.map((day) => {
               const workouts = userPlan.filter(w => w.dayOfWeek === day)
               const isToday = new Date().toLocaleDateString('en-US', { weekday: 'long' }) === day
               return (
-                <div key={day} className="p-4 md:p-5 hover:bg-white/[0.02] transition-colors">
+                <div key={day} className={`p-4 md:p-5 transition-colors ${isToday ? 'bg-accent-primary/[0.03]' : 'hover:bg-white/[0.02]'}`}>
                   <div className="flex items-start gap-4 md:gap-6">
                     <div className="w-24 flex-shrink-0">
-                      <p className={`text-sm font-bold ${isToday ? 'text-accent-primary' : 'text-white/80'}`}>{day.slice(0, 3)}</p>
+                      <p className={`text-sm font-bold ${isToday ? 'text-accent-primary' : 'text-white/70'}`}>
+                        {isToday && <span className="inline-block w-1.5 h-1.5 bg-accent-primary rounded-full mr-1.5 animate-pulse" />}
+                        {day.slice(0, 3)}
+                      </p>
                       <p className="text-[11px] text-white/35">{workouts.length > 0 ? `${workouts.length} item${workouts.length > 1 ? 's' : ''}` : 'Rest'}</p>
                     </div>
                     <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3">
                       {workouts.length > 0 ? workouts.map((workout) => (
-                        <div key={workout.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+                        <div key={workout.id} className="group relative bg-white/[0.025] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200">
+                          {/* Decorative corner gradient */}
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-accent-primary/5 to-transparent rounded-tr-xl rounded-bl-[40px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <h3 className="font-semibold text-sm">{workout.name}</h3>
+                              <h3 className="font-semibold text-sm text-white/90">{workout.name}</h3>
                               <div className="flex items-center gap-2 mt-1 text-xs text-white/45">
-                                {workout.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{workout.duration} min</span>}
+                                {workout.duration > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />{workout.duration} min
+                                  </span>
+                                )}
                                 <span className="whop-pill capitalize !py-0">{workout.difficulty}</span>
                               </div>
                             </div>
-                            <button className="p-1 text-white/30 hover:text-white/60">
+                            <button className="p-1 text-white/30 hover:text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
                               <MoreVertical className="w-4 h-4" />
                             </button>
                           </div>
@@ -117,14 +131,18 @@ export default function MyPlan() {
                           {workout.notes && <p className="text-[11px] text-white/35 mb-3">{workout.notes}</p>}
                           {workout.exercises.length > 0 && (
                             <div className="flex gap-2">
-                              <Link to={`/workout/${workout.id}`} className="whop-btn-primary flex-1 !py-2 text-xs text-center">Start</Link>
+                              <Link to={`/workout/${workout.id}`} className="whop-btn-primary flex-1 !py-2 text-xs text-center hover:scale-[1.02] active:scale-[0.98] transition-transform">Start</Link>
                               <button onClick={() => handleReschedule(workout)} className="whop-btn-ghost !py-2 !px-3 text-xs">Move</button>
                               <button onClick={() => skipWorkout(workout.id)} className="whop-btn-ghost !py-2 !px-3 text-xs">Skip</button>
                             </div>
                           )}
                         </div>
                       )) : (
-                        <div className="col-span-full text-center py-4 text-white/30 text-sm">Rest day</div>
+                        <div className="col-span-full text-center py-4 text-white/25 text-sm flex items-center justify-center gap-2">
+                          <span className="w-4 h-px bg-white/10" />
+                          Rest day
+                          <span className="w-4 h-px bg-white/10" />
+                        </div>
                       )}
                     </div>
                   </div>

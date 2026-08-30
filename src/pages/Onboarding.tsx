@@ -85,15 +85,38 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   if (generating) {
     return (
-      <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-4">
-        <div className="text-center max-w-sm px-4">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center mx-auto mb-6 shadow-glow animate-pulse">
-            <Zap className="w-7 h-7 md:w-8 md:h-8 text-white" />
+      <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-4 bg-mesh relative overflow-hidden">
+        {/* Animated background orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent-primary/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent-secondary/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+
+        <div className="text-center max-w-sm px-4 relative z-10">
+          <div className="relative">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center mx-auto mb-8 shadow-glow animate-pulse">
+              <Zap className="w-10 h-10 md:w-12 md:h-12 text-white" />
+            </div>
+            {/* Floating particles */}
+            <div className="absolute -top-2 -right-2 w-3 h-3 bg-accent-success rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+            <div className="absolute -bottom-1 -left-2 w-2 h-2 bg-accent-warning rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+            <div className="absolute top-1/2 -right-3 w-2 h-2 bg-accent-primary rounded-full animate-bounce" style={{ animationDelay: '0.6s' }} />
           </div>
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Building your personal plan...</h2>
-          <p className="text-white/45 text-sm mb-8">Analyzing your schedule, goals, and preferences</p>
-          <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-accent-primary to-accent-secondary rounded-full animate-[loading_2s_ease-in-out_forwards]" style={{ width: '0%' }} />
+
+          <h2 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">Building your personal plan...</h2>
+          <p className="text-white/50 text-sm md:text-base mb-10">Analyzing your schedule, goals, and preferences</p>
+
+          <div className="space-y-4">
+            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-accent-primary to-accent-secondary rounded-full animate-[loading_2.5s_ease-in-out_forwards]" style={{ width: '0%' }} />
+            </div>
+            <div className="flex justify-center gap-1.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-accent-primary/40 animate-pulse"
+                  style={{ animationDelay: `${i * 0.2}s` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

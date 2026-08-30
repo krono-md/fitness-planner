@@ -93,6 +93,18 @@ const ENDURANCE_GOALS = ['improve_endurance', 'athletic_performance', 'lose_body
 const MOBILITY_GOALS = ['improve_mobility']
 const CONSISTENCY_GOALS = ['build_consistency', 'maintain_fitness']
 
+/** Result of fitting a workout into a day's schedule. */
+export interface WorkoutWindow {
+  /** Human-readable time range, e.g. "5:30 PM – 6:25 PM". */
+  window: string | null
+  /** The class/work block this workout slot is placed before, if any. */
+  beforeBlock?: { startTime: string; endTime: string; type: string; title: string }
+  /** The class/work block this workout slot is placed after, if any. */
+  afterBlock?: { endTime: string; startTime: string; type: string; title: string }
+  /** Two consecutive blocks this workout slot is placed between, if any. */
+  betweenBlocks?: { endTime: string; nextStart: string; title: string }
+}
+
 const GOAL_LABEL: Record<string, string> = {
   build_consistency: 'building consistency',
   improve_fitness: 'improving overall fitness',
@@ -154,14 +166,14 @@ export class PersonalizationEngine {
       const day = selectedDays[i % selectedDays.length]
       const template = templates[i % templates.length]
       const exercises = this.filterExercises(template.exercises, profile)
-      const window = this.findWorkoutWindow(profile, day)
+      const windowInfo = this.findWorkoutWindow(profile, day)
       const reasoning = this.buildReasoning(profile, {
         name: template.name,
         day,
         duration,
         difficulty,
         exercises,
-        window,
+        window: windowInfo,
       })
 
       workouts.push({
@@ -174,11 +186,11 @@ export class PersonalizationEngine {
         exercises,
         equipment: template.equipment,
         estimatedCalories: Math.round(duration * 6),
-        notes: window
-          ? `Suggested window: ${window}. ${template.notes}`
+        notes: windowInfo.window
+          ? `Suggested window: ${windowInfo.window}. ${template.notes}`
           : template.notes,
         reasoning,
-        suggestedWindow: window || undefined,
+        suggestedWindow: windowInfo.window || undefined,
       })
     }
 
@@ -187,7 +199,8 @@ export class PersonalizationEngine {
     for (const day of days) {
       if (!selectedDays.includes(day)) {
         const isActiveRecovery = profile.recoveryDayPreference === 'active_recovery'
-        const recoveryReasoning = this.buildRecoveryReasoning(profile, day, isActiveRecovery)
+        const recoveryReasoning = this.buildRecoveryReasoning(profile, day, isActiveRecovery, selectedDays)
+        const recoveryWindow = this.findRecoveryWindow(profile, day, isActiveRecovery)
         workouts.push({
           id: `recovery_${recoveryIndex++}`,
           name: isActiveRecovery ? 'Active Recovery' : 'Rest Day',
@@ -201,6 +214,7 @@ export class PersonalizationEngine {
             ? 'Light mobility or a walk. Keep it easy.'
             : 'Rest day. Focus on recovery and sleep.',
           reasoning: recoveryReasoning,
+          suggestedWindow: recoveryWindow || undefined,
         })
       }
     }
@@ -215,7 +229,7 @@ export class PersonalizationEngine {
    */
   static buildReasoning(
     profile: UserProfile,
-    ctx: { name: string; day: string; duration: number; difficulty: string; exercises: Exercise[]; window: string | null }
+    ctx: { name: string; day: string; duration: number; difficulty: string; exercises: Exercise[]; window: WorkoutWindow }
   ): string {
     const parts: string[] = []
     const goalLabel = GOAL_LABEL[profile.goal] || 'your goal'
@@ -223,7 +237,7 @@ export class PersonalizationEngine {
     const intensityLabel = INTENSITY_LABEL[profile.preferredIntensity] || 'moderate'
     const locationLabel = LOCATION_LABEL[profile.workoutLocation] || 'at your workout spot'
     const timeMin = ctx.duration
-    const window = ctx.window
+    const windowInfo = ctx.window
     const equipmentCount = profile.equipment.length
     const hasGym = profile.equipment.includes('full_gym') || profile.workoutLocation === 'gym'
     const noEquipment = equipmentCount === 0 || profile.equipment.includes('none')
@@ -248,12 +262,8 @@ export class PersonalizationEngine {
       parts.push(`Uses what you have available (${profile.equipment.join(', ')}).`)
     }
 
-    // Schedule basis (window or fallback)
-    if (window) {
-      parts.push(`Scheduled for ${ctx.day} around ${window} based on your classes.`)
-    } else {
-      parts.push(`Scheduled for ${ctx.day} — your least busy day.`)
-    }
+    // Schedule basis (window or fallback) — cite the actual block before/after
+    parts.push(this.formatScheduleReason(ctx.day, windowInfo, profile))
 
     // Stress / sleep / recovery adjustments
     if (profile.stressLevel === 'high') {
@@ -269,11 +279,87 @@ export class PersonalizationEngine {
     return parts.join(' ')
   }
 
-  static buildRecoveryReasoning(profile: UserProfile, day: string, active: boolean): string {
-    if (active) {
-      return `${day} is a recovery day. We picked active recovery (light mobility) since you marked "active_recovery" as your preference.`
+  /**
+   * Format the schedule portion of the reasoning. Tries to cite a specific
+   * class/work block (e.g. "before your 9:00 AM Seminar") rather than a
+   * generic "based on your classes" line.
+   */
+  private static formatScheduleReason(
+    day: string,
+    window: WorkoutWindow,
+    profile: UserProfile
+  ): string {
+    if (!window.window) {
+      return `Scheduled for ${day} — it has no classes or commitments, so it's free for training.`
     }
-    return `${day} is a full rest day based on your preference. Use it for sleep and recovery so the next session lands well.`
+    if (window.beforeBlock) {
+      return `Scheduled for ${day} before your ${window.beforeBlock.startTime} ${window.beforeBlock.title} (${window.beforeBlock.type}). Window: ${window.window}.`
+    }
+    if (window.afterBlock) {
+      return `Scheduled for ${day} after your ${window.afterBlock.endTime} ${window.afterBlock.title} (${window.afterBlock.type}). Window: ${window.window}.`
+    }
+    if (window.betweenBlocks) {
+      return `Scheduled for ${day} between your ${window.betweenBlocks.endTime} ${window.betweenBlocks.title} and ${window.betweenBlocks.nextStart} next block. Window: ${window.window}.`
+    }
+    // No surrounding blocks (fallback by preference)
+    const pref = profile.morningVsEvening
+    const prefLabel = pref === 'morning' ? 'morning' : pref === 'evening' ? 'evening' : 'midday'
+    return `Scheduled for ${day} in your ${prefLabel} window (${window.window}) — no classes that day.`
+  }
+
+  static buildRecoveryReasoning(
+    profile: UserProfile,
+    day: string,
+    active: boolean,
+    workoutDays: string[]
+  ): string {
+    const order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    const sortedWorkoutDays = [...workoutDays].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    // Find the previous and next *workout* day relative to this recovery day
+    const dayIdx = order.indexOf(day)
+    const prevWorkout = sortedWorkoutDays
+      .filter(d => order.indexOf(d) < dayIdx)
+      .pop() || null
+    const nextWorkout = sortedWorkoutDays
+      .find(d => order.indexOf(d) > dayIdx) || null
+
+    if (active) {
+      let neighbor = ''
+      if (prevWorkout && nextWorkout) neighbor = ` — sits between your ${prevWorkout} and ${nextWorkout} sessions to let muscles recover.`
+      else if (nextWorkout) neighbor = ` — the day before your ${nextWorkout} session.`
+      else if (prevWorkout) neighbor = ` — the day after your ${prevWorkout} session.`
+      return `${day} is an active recovery day${neighbor} You marked "active recovery" as your preference, so we'll do light mobility.`
+    }
+    let neighbor = ''
+    if (prevWorkout && nextWorkout) neighbor = ` It sits between your ${prevWorkout} and ${nextWorkout} sessions.`
+    else if (nextWorkout) neighbor = ` Your next session is ${nextWorkout}.`
+    else if (prevWorkout) neighbor = ` Your last session was ${prevWorkout}.`
+    return `${day} is a full rest day.${neighbor} Use it for sleep and recovery so the next session lands well.`
+  }
+
+  /**
+   * Soft "anytime" window for active-recovery days. Picks a low-stress slot
+   * that doesn't conflict with any class/work block.
+   */
+  static findRecoveryWindow(profile: UserProfile, day: string, active: boolean): string | null {
+    if (!active) return null
+    const blocks = profile.scheduleBlocks
+      .filter(b => b.day === day)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    if (blocks.length === 0) {
+      if (profile.morningVsEvening === 'morning') return '6:30 AM – 6:50 AM'
+      if (profile.morningVsEvening === 'evening') return '5:30 PM – 5:50 PM'
+      return '3:00 PM – 3:20 PM'
+    }
+    // Try morning before the first block, or evening after the last block
+    const firstStart = this.timeToMinutes(blocks[0].startTime)
+    if (firstStart >= 7 * 60) {
+      const start = 6 * 60 + 30
+      return `${this.fmtTime(start)} – ${this.fmtTime(start + 20)}`
+    }
+    const lastEnd = this.timeToMinutes(blocks[blocks.length - 1].endTime)
+    const start = lastEnd + 30
+    return `${this.fmtTime(start)} – ${this.fmtTime(start + 20)}`
   }
 
   private static selectWorkoutDays(profile: UserProfile, days: string[], count: number): string[] {
@@ -307,46 +393,96 @@ export class PersonalizationEngine {
       .slice(0, count)
   }
 
-  static findWorkoutWindow(profile: UserProfile, day: string): string | null {
+  static findWorkoutWindow(profile: UserProfile, day: string): WorkoutWindow {
     const blocks = profile.scheduleBlocks
       .filter(b => b.day === day)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
-    if (blocks.length === 0) {
-      if (profile.morningVsEvening === 'morning') return '6:30 AM – 7:30 AM'
-      if (profile.morningVsEvening === 'evening') return '5:30 PM – 6:30 PM'
-      return '3:00 PM – 4:00 PM'
-    }
-
-    // Find the first gap between or after blocks that fits the user's session length
     const timeMap: Record<string, number> = {
       '10-15': 15, '15-20': 18, '20-30': 30, '30-45': 40, '45-60': 55, '60+': 75,
     }
     const neededMinutes = timeMap[profile.availableTimePerSession] || 30
-    const fmt = (totalMinutes: number) => {
-      const total = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60)
-      const hr = Math.floor(total / 60)
-      const min = total % 60
-      const period = hr >= 12 ? 'PM' : 'AM'
-      const h12 = hr > 12 ? hr - 12 : hr === 0 ? 12 : hr
-      return `${h12}:${min.toString().padStart(2, '0')} ${period}`
+    const fmtRange = (start: number, end: number) =>
+      `${this.fmtTime(start)} – ${this.fmtTime(end)}`
+
+    // No blocks: return a window based on the user's preferred time of day
+    if (blocks.length === 0) {
+      if (profile.morningVsEvening === 'morning') {
+        return { window: fmtRange(6 * 60 + 30, 6 * 60 + 30 + neededMinutes) }
+      }
+      if (profile.morningVsEvening === 'evening') {
+        return { window: fmtRange(17 * 60 + 30, 17 * 60 + 30 + neededMinutes) }
+      }
+      return { window: fmtRange(15 * 60, 15 * 60 + neededMinutes) }
     }
 
-    // Try gaps between consecutive blocks first
+    // 1. Try the slot BEFORE the first block (for morning preference, this is the natural fit)
+    const firstStart = this.timeToMinutes(blocks[0].startTime)
+    if (profile.morningVsEvening === 'morning' && firstStart >= 7 * 60) {
+      // We need the workout to END at least 15 min before class so the user can change/shower
+      const end = Math.max(6 * 60 + 30 + neededMinutes, firstStart - 15)
+      const start = end - neededMinutes
+      if (start >= 5 * 60) {
+        return {
+          window: fmtRange(start, end),
+          beforeBlock: { ...blocks[0] },
+        }
+      }
+    }
+
+    // 2. Try gaps between consecutive blocks
     for (let i = 0; i < blocks.length - 1; i++) {
       const end = this.timeToMinutes(blocks[i].endTime)
       const nextStart = this.timeToMinutes(blocks[i + 1].startTime)
       const gap = nextStart - end
-      if (gap >= neededMinutes) {
-        return `${fmt(end)} – ${fmt(end + neededMinutes)}`
+      if (gap >= neededMinutes + 15) {
+        return {
+          window: fmtRange(end + 15, end + 15 + neededMinutes),
+          betweenBlocks: {
+            endTime: blocks[i].endTime,
+            nextStart: blocks[i + 1].startTime,
+            title: blocks[i].title,
+          },
+        }
       }
     }
 
-    // Try after the last block, in the evening
+    // 3. Try the slot AFTER the last block (for evening preference, this is the natural fit)
     const lastEnd = this.timeToMinutes(blocks[blocks.length - 1].endTime)
+    if (profile.morningVsEvening === 'evening') {
+      const start = lastEnd + 30
+      return {
+        window: fmtRange(start, start + neededMinutes),
+        afterBlock: {
+          endTime: blocks[blocks.length - 1].endTime,
+          startTime: blocks[blocks.length - 1].startTime,
+          type: blocks[blocks.length - 1].type,
+          title: blocks[blocks.length - 1].title,
+        },
+      }
+    }
+
+    // 4. Default fallback: after the last block (with 30 min buffer) or evening start
     const eveningStart = 17 * 60 // 5:00 PM
     const startCandidate = Math.max(lastEnd + 30, eveningStart)
-    return `${fmt(startCandidate)} – ${fmt(startCandidate + neededMinutes)}`
+    return {
+      window: fmtRange(startCandidate, startCandidate + neededMinutes),
+      afterBlock: {
+        endTime: blocks[blocks.length - 1].endTime,
+        startTime: blocks[blocks.length - 1].startTime,
+        type: blocks[blocks.length - 1].type,
+        title: blocks[blocks.length - 1].title,
+      },
+    }
+  }
+
+  private static fmtTime(totalMinutes: number): string {
+    const total = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60)
+    const hr = Math.floor(total / 60)
+    const min = total % 60
+    const period = hr >= 12 ? 'PM' : 'AM'
+    const h12 = hr > 12 ? hr - 12 : hr === 0 ? 12 : hr
+    return `${h12}:${min.toString().padStart(2, '0')} ${period}`
   }
 
   private static timeToMinutes(t: string): number {

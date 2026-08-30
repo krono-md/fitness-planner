@@ -1,8 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
+import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw, Sparkles, Calendar } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 import { calculateStreak, calculateConsistency } from '../utils/stats'
+import { PersonalizationEngine } from '../engine/personalizationEngine'
 import PageHeader from '../components/PageHeader'
 
 export default function Dashboard() {
@@ -16,6 +17,8 @@ export default function Dashboard() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const todaysWorkout = userPlan.find(w => w.dayOfWeek === today && w.exercises.length > 0)
+  const todaysRestEntry = !todaysWorkout ? userPlan.find(w => w.dayOfWeek === today) : null
+  const todaysWindow = user ? PersonalizationEngine.findWorkoutWindow(user, today) : null
   const completedWorkouts = workoutSessions.filter(s => s.completed).length
   const weeklyGoal = goals.find(g => g.category === 'workouts' && !g.completed)
   const streak = calculateStreak(workoutSessions)
@@ -81,10 +84,18 @@ export default function Dashboard() {
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-primary to-indigo-600 flex items-center justify-center shadow-glow-sm hover:shadow-medium transition-shadow duration-300">
                   <Dumbbell className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-[13px] text-white/55">
-                    {todaysWorkout.duration} min · {todaysWorkout.exercises.length} exercises
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[13px] text-white/55">
+                      {todaysWorkout.duration} min · {todaysWorkout.exercises.length} exercises
+                    </p>
+                    {todaysWorkout.suggestedWindow && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-primary/15 border border-accent-primary/25 text-accent-primary text-[10px] font-semibold">
+                        <Clock className="w-2.5 h-2.5" />
+                        {todaysWorkout.suggestedWindow}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-2xs text-white/35 mt-0.5">{todaysWorkout.targetMuscles.join(' · ')}</p>
                 </div>
               </div>
@@ -115,9 +126,41 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="py-5 text-center">
-              <p className="text-[13px] text-white/45 mb-2">No workout today — enjoy your recovery.</p>
-              <Link to="/recovery" className="text-accent-primary text-[13px] font-medium hover:underline">Log sleep →</Link>
+            <div className="space-y-3.5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/10">
+                  <Calendar className="w-5 h-5 text-white/40" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] text-white/55">Rest day — let your body recover</p>
+                  {nextWorkout && (
+                    <p className="text-2xs text-white/35 mt-0.5">
+                      Next session: {nextWorkout.day} · {nextWorkout.workout.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Why rest today — recovery reasoning */}
+              {todaysRestEntry?.reasoning && (
+                <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-md bg-white/10 text-white/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-2xs font-semibold text-white/55 uppercase tracking-wider mb-1">Why rest today</p>
+                      <p className="text-[12.5px] text-white/70 leading-relaxed">{todaysRestEntry.reasoning}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Link to="/recovery" className="whop-btn-ghost flex-1 flex items-center justify-center gap-1.5">
+                  <Moon className="w-3.5 h-3.5" /> Log sleep
+                </Link>
+              </div>
             </div>
           )}
         </div>

@@ -23,7 +23,7 @@ export default function Calendar() {
           const workouts = userPlan.filter(w => w.dayOfWeek === day)
           const blocks = user?.scheduleBlocks?.filter(b => b.day === day) || []
           const isToday = day === today
-          const window = user ? PersonalizationEngine.findWorkoutWindow(user, day) : null
+          const windowInfo = user ? PersonalizationEngine.findWorkoutWindow(user, day) : null
 
           return (
             <div
@@ -60,8 +60,8 @@ export default function Calendar() {
                   </div>
                 ))}
 
-                {window && workouts.some(w => w.exercises.length > 0) && (
-                  <p className="text-[9px] text-accent-success/70 mt-1">Free: {window}</p>
+                {windowInfo?.window && workouts.some(w => w.exercises.length > 0) && (
+                  <p className="text-[9px] text-accent-success/70 mt-1">Free: {windowInfo.window}</p>
                 )}
               </div>
             </div>

@@ -50,6 +50,10 @@ export interface Workout {
   equipment: string[]
   estimatedCalories?: number
   notes?: string
+  /** Plain-language reasoning tying this workout back to onboarding inputs. */
+  reasoning?: string
+  /** Window string (e.g. "5:30 PM – 6:30 PM") derived from the user's schedule. */
+  suggestedWindow?: string
 }
 
 export interface Exercise {

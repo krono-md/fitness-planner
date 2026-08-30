@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 import { calculateStreak, calculateConsistency } from '../utils/stats'
 import PageHeader from '../components/PageHeader'
@@ -88,6 +88,23 @@ export default function Dashboard() {
                   <p className="text-2xs text-white/35 mt-0.5">{todaysWorkout.targetMuscles.join(' · ')}</p>
                 </div>
               </div>
+
+              {/* Why this workout — reasoning tied to onboarding inputs */}
+              {todaysWorkout.reasoning && (
+                <div className="relative overflow-hidden rounded-xl border border-accent-primary/20 bg-accent-primary/[0.06] p-3.5">
+                  <div className="absolute -top-6 -right-6 w-20 h-20 bg-accent-primary/15 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-md bg-accent-primary/20 text-accent-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-2xs font-semibold text-accent-primary uppercase tracking-wider mb-1">Why this workout</p>
+                      <p className="text-[12.5px] text-white/80 leading-relaxed">{todaysWorkout.reasoning}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Link to={`/workout/${todaysWorkout.id}`} className="whop-btn-primary flex-1 transition-all duration-200 hover:scale-105 active:scale-95">
                   <Play className="w-3.5 h-3.5" /> Start Workout

@@ -6,31 +6,28 @@ interface LayoutProps {
   children: React.ReactNode
   onDemoSwitch?: (userId: string) => void
   demoMode?: boolean
-  onMoreClick?: () => void
-  moreMenuOpen?: boolean
+  onProfileClick?: () => void
 }
 
-const defaultOnMoreClick = () => {}
-
-export default function Layout({ children, onDemoSwitch, demoMode, onMoreClick = defaultOnMoreClick, moreMenuOpen }: LayoutProps) {
+export default function Layout({ children, onDemoSwitch, demoMode, onProfileClick }: LayoutProps) {
   return (
     <div className="flex flex-col min-h-screen bg-dark-bg text-white/90">
       {/* Top Bar */}
       <TopBar
-        onMenuClick={onMoreClick}
+        onProfileClick={onProfileClick}
         demoMode={demoMode}
         onDemoSwitch={onDemoSwitch}
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto px-4 py-6">
           {children}
         </div>
       </main>
 
       {/* Bottom Navigation */}
-      <BottomNav onMoreClick={onMoreClick} />
+      <BottomNav />
     </div>
   )
 }

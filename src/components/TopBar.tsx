@@ -1,23 +1,23 @@
 import React from 'react'
-import { Menu, Flame } from 'lucide-react'
+import { Menu, User } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useAppStore } from '../store/appStore'
-import { calculateStreak } from '../utils/stats'
 import { getRouteMeta } from '../utils/routeMeta'
 
 interface TopBarProps {
   onMenuClick?: () => void
+  onProfileClick?: () => void
   demoMode?: boolean
   onDemoSwitch?: (userId: string) => void
 }
 
-export default function TopBar({ onMenuClick, onDemoSwitch, demoMode }: TopBarProps) {
+export default function TopBar({ onMenuClick, onProfileClick, demoMode, onDemoSwitch }: TopBarProps) {
   const { pathname } = useLocation()
-  const { user, workoutSessions } = useAppStore()
+  const { user } = useAppStore()
   const [showDemoMenu, setShowDemoMenu] = React.useState(false)
+  const [showProfileMenu, setShowProfileMenu] = React.useState(false)
 
   const meta = getRouteMeta(pathname)
-  const streak = calculateStreak(workoutSessions)
 
   const demoUsers = [
     { id: 'beginner', label: 'Beginner Student' },
@@ -54,7 +54,8 @@ export default function TopBar({ onMenuClick, onDemoSwitch, demoMode }: TopBarPr
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative">
+        {/* Demo Switcher */}
+        <div className="relative hidden sm:block">
           <button
             onClick={() => setShowDemoMenu(!showDemoMenu)}
             className="px-2.5 py-1.5 rounded-lg text-2xs font-semibold text-accent-primary/90 bg-accent-primary/8 hover:bg-accent-primary/14 border border-accent-primary/15 transition-colors"
@@ -64,7 +65,7 @@ export default function TopBar({ onMenuClick, onDemoSwitch, demoMode }: TopBarPr
           {showDemoMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowDemoMenu(false)} />
-              <div className="absolute right-0 mt-1.5 w-48 bg-dark-elevated border border-white/[0.08] rounded-xl shadow-large z-50 overflow-hidden py-1">
+              <div className="absolute left-0 mt-1.5 w-48 bg-dark-elevated border border-white/[0.08] rounded-xl shadow-large z-50 overflow-hidden py-1">
                 {demoUsers.map(u => (
                   <button
                     key={u.id}
@@ -79,9 +80,38 @@ export default function TopBar({ onMenuClick, onDemoSwitch, demoMode }: TopBarPr
           )}
         </div>
 
-        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07]">
-          <Flame className="w-3.5 h-3.5 text-accent-warning" />
-          <span className="font-semibold text-2xs text-white/70 tabular-nums">{streak}d</span>
+        {/* User Profile */}
+        <div className="relative">
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-white/[0.05] rounded-lg transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
+              <User className="w-4 h-4 text-white" />
+            </div>
+          </button>
+          {showProfileMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+              <div className="absolute right-0 mt-1.5 w-48 bg-dark-elevated border border-white/[0.08] rounded-xl shadow-large z-50 overflow-hidden py-1">
+                <div className="px-3 py-2 border-b border-white/[0.05]">
+                  <p className="text-[12px] font-medium text-white/90">{user?.name}</p>
+                </div>
+                <button
+                  onClick={() => { setShowProfileMenu(false); onProfileClick?.() }}
+                  className="block w-full text-left px-3 py-2 hover:bg-white/[0.05] text-[12px] text-white/75"
+                >
+                  Settings
+                </button>
+                <button
+                  onClick={() => { setShowProfileMenu(false) }}
+                  className="block w-full text-left px-3 py-2 hover:bg-white/[0.05] text-[12px] text-white/75"
+                >
+                  Log Out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -6,9 +6,11 @@ import {
   Pause,
   CheckCircle,
   X,
-  Volume2
+  Volume2,
+  LogOut,
 } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
+import { WorkoutSession } from '../types'
 
 export default function WorkoutPlayer() {
   const { workoutId } = useParams()
@@ -24,6 +26,12 @@ export default function WorkoutPlayer() {
   const [elapsedTime, setElapsedTime] = useState(0)
   const [showCompletion, setShowCompletion] = useState(false)
   const [difficultyRating, setDifficultyRating] = useState<string | null>(null)
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false)
+
+  // Exercises the user has actually completed in this session.
+  // Tapping "Next" adds the current exercise to the set. Tapping "Previous"
+  // does NOT remove it (once done, done).
+  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (user) {
@@ -59,7 +67,17 @@ export default function WorkoutPlayer() {
   }
 
   const handleNext = () => {
-    if (currentExerciseIndex < (workout?.exercises?.length || 0) - 1) {
+    if (!workout?.exercises) return
+    // Mark the just-finished exercise as done
+    const justFinished = workout.exercises[currentExerciseIndex]
+    if (justFinished) {
+      setCompletedExercises(prev => {
+        const next = new Set(prev)
+        next.add(justFinished.id)
+        return next
+      })
+    }
+    if (currentExerciseIndex < workout.exercises.length - 1) {
       setIsResting(true)
       setRestTime(currentExercise?.restSeconds || 60)
       setCurrentExerciseIndex(prev => prev + 1)
@@ -74,20 +92,43 @@ export default function WorkoutPlayer() {
     }
   }
 
-  const handleFinish = () => {
-    const session = {
+  // Build a session from current state. Used by both "Finish" and "Quit" paths.
+  const buildSession = (completed: boolean): WorkoutSession => {
+    const total = workout?.exercises.length || 0
+    const done = completedExercises.size
+    const missed = (workout?.exercises || [])
+      .filter((e: any) => !completedExercises.has(e.id))
+      .map((e: any) => e.name)
+    return {
       id: `session_${Date.now()}`,
       workoutId: workout?.id || '',
       userId: user?.id || '',
       date: new Date().toISOString(),
-      startTime: new Date().toISOString(),
+      startTime: new Date(Date.now() - elapsedTime * 1000).toISOString(),
       endTime: new Date().toISOString(),
-      completed: true,
-      exercisesCompleted: workout?.exercises.length || 0,
-      duration: Math.floor(elapsedTime / 60),
-      difficulty: difficultyRating as any || 'moderate',
+      completed,
+      // Always reflect what was actually done — the set is the source of truth.
+      // (The "Finish" path is only reachable after the user tapped Next on the
+      // last exercise, so `done === total` in that case. But we never inflate
+      // the count from the flag.)
+      exercisesCompleted: done,
+      duration: Math.max(1, Math.floor(elapsedTime / 60)),
+      difficulty: (difficultyRating || 'moderate') as WorkoutSession['difficulty'],
+      missedExercises: missed.length > 0 ? missed : undefined,
+      wasAdjusted: !!workout?.adjustedReason,
+      adjustReason: workout?.adjustedReason,
     }
-    addWorkoutSession(session)
+  }
+
+  const handleFinish = () => {
+    if (!difficultyRating) return // button is disabled, but guard anyway
+    addWorkoutSession(buildSession(true))
+    navigate('/')
+  }
+
+  const handleQuitConfirm = () => {
+    addWorkoutSession(buildSession(false))
+    setShowQuitConfirm(false)
     navigate('/')
   }
 
@@ -96,6 +137,10 @@ export default function WorkoutPlayer() {
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
+
+  // Real-time progress for the player (how many of the workout's exercises done)
+  const progressDone = useMemo(() => completedExercises.size, [completedExercises])
+  const progressTotal = workout?.exercises?.length || 0
 
   if (!workout) {
     return (
@@ -106,6 +151,7 @@ export default function WorkoutPlayer() {
   }
 
   if (showCompletion) {
+    const isAdjusted = !!workout.adjustedReason
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-dark-surface border border-dark-border rounded-2xl p-8 text-center">
@@ -113,7 +159,12 @@ export default function WorkoutPlayer() {
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Workout Complete!</h1>
-          <p className="text-white/60 mb-8">Great job on finishing your workout.</p>
+          <p className="text-white/60 mb-2">Great job on finishing your workout.</p>
+          {isAdjusted && (
+            <p className="text-2xs text-accent-primary/80 font-medium mb-6">
+              Logged after an Adjust — your history will show this.
+            </p>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 mb-8">
@@ -127,23 +178,30 @@ export default function WorkoutPlayer() {
             </div>
           </div>
 
-          {/* Difficulty Rating */}
+          {/* Difficulty Rating — required to finish */}
           <div className="mb-8">
-            <p className="font-medium mb-3">How was this workout?</p>
-            <div className="flex justify-center gap-2">
-              {['too_easy', 'easy', 'moderate', 'hard', 'very_hard'].map((rating) => (
+            <p className="font-medium mb-1">How was this workout?</p>
+            <p className="text-2xs text-white/40 mb-3">Pick a rating so we can tune future plans.</p>
+            <div className="flex justify-center gap-2 flex-wrap">
+              {[
+                { v: 'too_easy', l: 'too easy' },
+                { v: 'easy', l: 'easy' },
+                { v: 'moderate', l: 'moderate' },
+                { v: 'hard', l: 'hard' },
+                { v: 'very_hard', l: 'very hard' },
+              ].map((rating) => (
                 <button
-                  key={rating}
-                  onClick={() => setDifficultyRating(rating)}
+                  key={rating.v}
+                  onClick={() => setDifficultyRating(rating.v)}
                   className={`
                     px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${difficultyRating === rating
+                    ${difficultyRating === rating.v
                       ? 'bg-accent-primary text-white'
                       : 'bg-dark-elevated border border-dark-border hover:bg-dark-hover'
                     }
                   `}
                 >
-                  {rating.replace('_', ' ')}
+                  {rating.l}
                 </button>
               ))}
             </div>
@@ -151,9 +209,14 @@ export default function WorkoutPlayer() {
 
           <button
             onClick={handleFinish}
-            className="w-full py-4 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl font-bold text-lg hover:from-accent-primary/90 hover:to-accent-secondary/90 transition-all"
+            disabled={!difficultyRating}
+            className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+              difficultyRating
+                ? 'bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-primary/90 hover:to-accent-secondary/90'
+                : 'bg-white/5 text-white/30 cursor-not-allowed'
+            }`}
           >
-            Finish
+            {difficultyRating ? 'Finish' : 'Pick a rating to finish'}
           </button>
         </div>
       </div>
@@ -165,24 +228,38 @@ export default function WorkoutPlayer() {
       {/* Header with blur effect */}
       <div className="bg-dark-surface/90 backdrop-blur-xl border-b border-white/[0.06] p-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors">
-            <X className="w-6 h-6" />
+          <button
+            onClick={() => setShowQuitConfirm(true)}
+            className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors flex items-center gap-1.5"
+            aria-label="Quit workout"
+          >
+            <LogOut className="w-4 h-4 text-white/50" />
+            <span className="text-2xs text-white/50 hidden sm:inline">Quit</span>
           </button>
           <div className="text-center">
             <h1 className="font-bold">{workout.name}</h1>
-            <p className="text-sm text-white/60">Exercise {currentExerciseIndex + 1} of {workout.exercises.length}</p>
+            <p className="text-sm text-white/60">
+              Exercise {currentExerciseIndex + 1} of {workout.exercises.length}
+              {progressDone > 0 && (
+                <span className="text-emerald-400 ml-2">· {progressDone} done</span>
+              )}
+            </p>
           </div>
-          <button className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors">
-            <Volume2 className="w-6 h-6" />
+          <button
+            onClick={() => setShowQuitConfirm(true)}
+            className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 text-white/60" />
           </button>
         </div>
 
-        {/* Progress Bar with gradient */}
+        {/* Progress Bar with gradient — driven by completed-exercises set, not just current index */}
         <div className="mt-4 h-2 bg-white/[0.06] rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary transition-all duration-500 ease-out"
             style={{
-              width: `${((currentExerciseIndex + 1) / workout.exercises.length) * 100}%`,
+              width: `${Math.max(8, ((currentExerciseIndex + 1) / workout.exercises.length) * 100)}%`,
               backgroundSize: '200% 100%',
               animation: 'shimmer 2s linear infinite'
             }}
@@ -190,11 +267,37 @@ export default function WorkoutPlayer() {
         </div>
       </div>
 
+      {/* Quit confirmation overlay */}
+      {showQuitConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-dark-surface border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-1">Quit this workout?</h2>
+            <p className="text-2xs text-white/45 mb-4">
+              We'll log what you did so far ({progressDone} of {progressTotal} exercises).
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowQuitConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-sm font-medium"
+              >
+                Keep going
+              </button>
+              <button
+                onClick={handleQuitConfirm}
+                className="flex-1 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-sm font-semibold"
+              >
+                Quit & log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 p-6 flex flex-col">
         {/* Rest Overlay with premium animation */}
         {isResting && (
-          <div className="fixed inset-0 bg-dark-bg/98 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-dark-bg/98 backdrop-blur-sm flex items-center justify-center z-40 p-4">
             {/* Animated background circles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-primary/5 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
@@ -282,6 +385,7 @@ export default function WorkoutPlayer() {
             <button
               onClick={() => setIsPaused(!isPaused)}
               className="min-h-11 min-w-11 p-3 md:p-4 bg-dark-elevated hover:bg-dark-hover rounded-full flex items-center justify-center"
+              aria-label={isPaused ? 'Resume' : 'Pause'}
             >
               {isPaused ? <Play className="w-5 h-5 md:w-6 md:h-6" /> : <Pause className="w-5 h-5 md:w-6 md:h-6" />}
             </button>

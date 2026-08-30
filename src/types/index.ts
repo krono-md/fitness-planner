@@ -85,6 +85,10 @@ export interface WorkoutSession {
   notes?: string
   missedExercises?: string[]
   rescheduledFrom?: string
+  /** True if the workout was adapted (Stage 3 Adjust) before this session was logged. */
+  wasAdjusted?: boolean
+  /** Which Adjust reason was applied (mirrors Workout.adjustedReason). */
+  adjustReason?: 'less_time' | 'more_tired' | 'too_difficult' | 'no_equipment' | 'schedule_changed' | 'different_activity'
 }
 
 export interface SleepRecord {

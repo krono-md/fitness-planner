@@ -51,6 +51,7 @@ interface AppState {
   markWorkoutSkipped: (workoutId: string) => void
   addWorkoutSession: (session: WorkoutSession) => void
   updateWorkoutSession: (session: WorkoutSession) => void
+  logSkippedWorkout: (workoutId: string, opts?: { rescheduleTo?: string; reason?: string }) => void
   addSleepRecord: (record: SleepRecord) => void
   addGoal: (goal: Goal) => void
   updateGoal: (goal: Goal) => void
@@ -135,38 +136,84 @@ export const useAppStore = create<AppState>()(
       },
 
       markWorkoutSkipped: (workoutId) => {
+        const workout = get().userPlan.find(w => w.id === workoutId)
+        const fromDay = workout?.dayOfWeek
         set((state) => ({
           userPlan: state.userPlan.map(w =>
             w.id === workoutId ? { ...w, skipped: true } : w
           ),
         }))
-        get().addNotification({
-          id: `notif_${Date.now()}`,
-          userId: get().user?.id || '',
-          type: 'plan_adjustment',
-          title: 'Workout skipped',
-          message: 'We removed this workout from your plan for today.',
-          read: false,
-          createdAt: new Date().toISOString(),
-        })
+        // Also write a session so Progress / AdaptiveEngine can see the skip
+        get().logSkippedWorkout(workoutId, { reason: fromDay ? `Skipped on ${fromDay}` : undefined })
       },
 
-      addWorkoutSession: (session) => set((state) => {
-        const sessions = [...state.workoutSessions, session]
-        const weeklyGoal = state.goals.find(g => g.category === 'workouts' && !g.completed)
-        const goals = weeklyGoal
-          ? state.goals.map(g =>
-              g.id === weeklyGoal.id
-                ? { ...g, current: Math.min(g.current + 1, g.target) }
-                : g
-            )
-          : state.goals
-        return { workoutSessions: sessions, goals }
-      }),
+      addWorkoutSession: (session) => {
+        set((state) => {
+          const sessions = [...state.workoutSessions, session]
+          // Only completed sessions count toward the weekly workout goal
+          if (session.completed) {
+            const weeklyGoal = state.goals.find(g => g.category === 'workouts' && !g.completed)
+            if (weeklyGoal) {
+              const newCurrent = Math.min(weeklyGoal.current + 1, weeklyGoal.target)
+              const goals = state.goals.map(g =>
+                g.id === weeklyGoal.id
+                  ? { ...g, current: newCurrent, completed: newCurrent >= weeklyGoal.target }
+                  : g
+              )
+              return { workoutSessions: sessions, goals }
+            }
+          }
+          return { workoutSessions: sessions }
+        })
+        // Post a completion notification (only for completed sessions — skipped ones
+        // post their own notification at the call site so we can include the reschedule info)
+        if (session.completed) {
+          get().addNotification({
+            id: `notif_${Date.now()}`,
+            userId: get().user?.id || '',
+            type: 'completion',
+            title: 'Workout complete',
+            message: `${session.exercisesCompleted} exercises logged · rated ${session.difficulty}${session.wasAdjusted ? ' (after adjust)' : ''}.`,
+            read: false,
+            createdAt: new Date().toISOString(),
+          })
+        }
+      },
 
       updateWorkoutSession: (session) => set((state) => ({
         workoutSessions: state.workoutSessions.map(s => s.id === session.id ? session : s),
       })),
+
+      logSkippedWorkout: (workoutId, opts) => {
+        const { user, userPlan } = get()
+        const workout = userPlan.find(w => w.id === workoutId)
+        if (!workout) return
+        const now = new Date().toISOString()
+        const session: WorkoutSession = {
+          id: `session_${Date.now()}`,
+          workoutId: workout.id,
+          userId: user?.id || '',
+          date: now,
+          completed: false,
+          exercisesCompleted: 0,
+          duration: 0,
+          difficulty: 'moderate',
+          notes: opts?.reason,
+          rescheduledFrom: opts?.rescheduleTo ? workout.dayOfWeek : undefined,
+        }
+        get().addWorkoutSession(session)
+        get().addNotification({
+          id: `notif_${Date.now()}`,
+          userId: user?.id || '',
+          type: 'plan_adjustment',
+          title: 'Workout skipped',
+          message: opts?.rescheduleTo
+            ? `Moved to ${opts.rescheduleTo} — we'll see you then.`
+            : `Logged as skipped. Don't sweat it — pick it up tomorrow.`,
+          read: false,
+          createdAt: now,
+        })
+      },
 
       addSleepRecord: (record) => set((state) => ({
         sleepRecords: [...state.sleepRecords, record],

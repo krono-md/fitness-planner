@@ -54,6 +54,8 @@ export interface Workout {
   reasoning?: string
   /** Window string (e.g. "5:30 PM – 6:30 PM") derived from the user's schedule. */
   suggestedWindow?: string
+  /** Set when the user picked an Adjust reason — used to label the change in the UI. */
+  adjustedReason?: 'less_time' | 'more_tired' | 'too_difficult' | 'no_equipment' | 'schedule_changed' | 'different_activity'
 }
 
 export interface Exercise {

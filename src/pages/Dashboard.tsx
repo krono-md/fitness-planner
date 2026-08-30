@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw, Sparkles, Calendar } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 import { calculateStreak, calculateConsistency } from '../utils/stats'
-import { PersonalizationEngine } from '../engine/personalizationEngine'
+import { PersonalizationEngine, ADJUST_REASON_META } from '../engine/personalizationEngine'
 import PageHeader from '../components/PageHeader'
+import AdjustSheet from '../components/AdjustSheet'
 
 export default function Dashboard() {
-  const { user, workoutSessions, goals, userPlan, regeneratePlan } = useAppStore()
+  const { user, workoutSessions, goals, userPlan } = useAppStore()
+  const [adjustOpen, setAdjustOpen] = useState(false)
 
   if (!user) {
     return <div className="whop-page text-center"><p className="text-white/45">Please complete onboarding first.</p></div>
@@ -72,6 +74,11 @@ export default function Dashboard() {
             <div>
               <p className="whop-micro mb-1.5">Today's Workout</p>
               <h2 className="text-lg font-bold tracking-tight">{todaysWorkout?.name || 'Rest Day'}</h2>
+              {todaysWorkout?.adjustedReason && (
+                <p className="text-2xs text-accent-primary/80 mt-0.5 font-medium">
+                  Adjusted: {ADJUST_REASON_META[todaysWorkout.adjustedReason].label}
+                </p>
+              )}
             </div>
             {todaysWorkout && (
               <span className="whop-pill-accent capitalize">{todaysWorkout.difficulty}</span>
@@ -120,7 +127,7 @@ export default function Dashboard() {
                 <Link to={`/workout/${todaysWorkout.id}`} className="whop-btn-primary flex-1 transition-all duration-200 hover:scale-105 active:scale-95">
                   <Play className="w-3.5 h-3.5" /> Start Workout
                 </Link>
-                <button onClick={() => regeneratePlan()} className="whop-btn-ghost transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap">
+                <button onClick={() => setAdjustOpen(true)} className="whop-btn-ghost transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap">
                   <RefreshCw className="w-3.5 h-3.5" /> Adjust
                 </button>
               </div>
@@ -232,6 +239,8 @@ export default function Dashboard() {
           })}
         </div>
       </div>
+
+      <AdjustSheet open={adjustOpen} onClose={() => setAdjustOpen(false)} />
     </div>
   )
 }

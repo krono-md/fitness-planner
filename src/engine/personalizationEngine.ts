@@ -105,6 +105,25 @@ export interface WorkoutWindow {
   betweenBlocks?: { endTime: string; nextStart: string; title: string }
 }
 
+/** The 6 reasons a user can pick to adapt today's workout. */
+export type AdjustReason =
+  | 'less_time'
+  | 'more_tired'
+  | 'too_difficult'
+  | 'no_equipment'
+  | 'schedule_changed'
+  | 'different_activity'
+
+/** Human-readable label + 1-line description for each reason (used in the UI). */
+export const ADJUST_REASON_META: Record<AdjustReason, { label: string; description: string; icon: string }> = {
+  less_time:        { label: 'Less time',           description: 'Shrink it to fit the time you have.',         icon: '⏱' },
+  more_tired:       { label: 'More tired today',    description: 'Same moves, lighter load and more rest.',    icon: '😴' },
+  too_difficult:    { label: 'Workout too difficult', description: 'Swap hard moves for easier ones.',          icon: '📉' },
+  no_equipment:     { label: 'No equipment',        description: 'Bodyweight only — drop the gear.',          icon: '🏠' },
+  schedule_changed: { label: 'Schedule changed',    description: 'Re-fit around your classes and shifts.',     icon: '🗓' },
+  different_activity: { label: 'Different activity', description: 'Swap in a different style for today.',     icon: '🔄' },
+}
+
 const GOAL_LABEL: Record<string, string> = {
   build_consistency: 'building consistency',
   improve_fitness: 'improving overall fitness',
@@ -641,6 +660,282 @@ export class PersonalizationEngine {
     if (profile.fitnessLevel === 'intermediate' || profile.fitnessLevel === 'advanced') return 'moderate'
     if (profile.stressLevel === 'high' || profile.recoveryQuality === 'poor') return 'easy'
     return 'easy'
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // ADAPTIVE ADJUST (Stage 3)
+  // Each reason applies a distinct, deterministic transformation to
+  // today's workout. None of them regenerate the plan or randomize.
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Dispatcher: apply the chosen adjust reason to a single workout and
+   * return the new workout. Today's entry in `userPlan` is replaced with
+   * the result; everything else in the week is unchanged.
+   */
+  static adjustWorkout(workout: Workout, reason: AdjustReason, profile: UserProfile): Workout {
+    // Rest days and active-recovery days can't really be "adjusted" by these
+    // reasons — but a user can still pick one, so substitute a quick
+    // bodyweight session instead of no-op-ing.
+    if (workout.exercises.length === 0) {
+      const placeholder: Workout = {
+        ...workout,
+        name: 'Quick Bodyweight Reset',
+        duration: 12,
+        difficulty: 'easy',
+        targetMuscles: ['full_body'],
+        exercises: [
+          exerciseDatabase['bodyweight_squats'],
+          exerciseDatabase['incline_push_ups'],
+          exerciseDatabase['plank'],
+        ],
+        equipment: [],
+        estimatedCalories: Math.round(12 * 6),
+      }
+      return this.withAdjustedMeta(placeholder, reason, 'Swap from rest to a 12-min bodyweight reset so you still move today.')
+    }
+
+    switch (reason) {
+      case 'less_time':         return this.shortenForTime(workout)
+      case 'more_tired':        return this.toneDownForFatigue(workout)
+      case 'too_difficult':     return this.lowerDifficulty(workout)
+      case 'no_equipment':      return this.stripEquipment(workout, profile)
+      case 'schedule_changed':  return this.refitToSchedule(workout, profile)
+      case 'different_activity':return this.rotateTemplate(workout, profile)
+    }
+  }
+
+  // 1) Less time — cut duration, drop tail exercises, shorten rest
+  private static shortenForTime(workout: Workout): Workout {
+    const newDuration = Math.max(12, Math.round(workout.duration * 0.6))
+    // Drop the last 1-2 exercises, but always keep at least 2
+    const dropCount = workout.exercises.length >= 5 ? 2 : workout.exercises.length >= 3 ? 1 : 0
+    const newExercises = workout.exercises.slice(0, Math.max(2, workout.exercises.length - dropCount))
+    const newRest = Math.max(20, Math.round(workout.exercises[0]?.restSeconds ?? 60) * 0.75)
+    const newExercisesWithRest = newExercises.map(ex => ({ ...ex, restSeconds: newRest }))
+
+    const updated: Workout = {
+      ...workout,
+      duration: newDuration,
+      exercises: newExercisesWithRest,
+      estimatedCalories: Math.round(newDuration * 6),
+    }
+    return this.withAdjustedMeta(
+      updated,
+      'less_time',
+      `Trimmed from ${workout.duration} to ${newDuration} min and cut ${dropCount} move${dropCount === 1 ? '' : 's'} to fit your window.`
+    )
+  }
+
+  // 2) More tired — keep the moves, drop the load
+  private static toneDownForFatigue(workout: Workout): Workout {
+    const newExercises = workout.exercises.map(ex => ({
+      ...ex,
+      // Halve the sets so total volume drops, but keep all the moves
+      sets: Math.max(2, Math.round(ex.sets * 0.5)),
+      // +15s rest so the user can actually catch their breath
+      restSeconds: ex.restSeconds + 15,
+    }))
+    const updated: Workout = {
+      ...workout,
+      difficulty: 'easy',
+      exercises: newExercises,
+    }
+    return this.withAdjustedMeta(
+      updated,
+      'more_tired',
+      `Kept your ${workout.exercises.length} moves but halved the sets and added 15s of rest — easier on tired muscles.`
+    )
+  }
+
+  // 3) Too difficult — swap hard/moderate moves for easy alternatives that target the same muscles
+  private static lowerDifficulty(workout: Workout): Workout {
+    // Index all `easy` exercises by their first target muscle for quick lookup
+    const easyByMuscle: Record<string, Exercise[]> = {}
+    for (const id of Object.keys(exerciseDatabase)) {
+      const ex = exerciseDatabase[id]
+      if (ex.difficulty !== 'easy') continue
+      const primary = ex.targetMuscles[0]
+      if (!primary) continue
+      ;(easyByMuscle[primary] ||= []).push(ex)
+    }
+
+    const newExercises: Exercise[] = workout.exercises.map(ex => {
+      if (ex.difficulty === 'easy') return { ...ex, sets: Math.min(ex.sets, 3) }
+      const primary = ex.targetMuscles[0]
+      const candidates = primary ? easyByMuscle[primary] : undefined
+      if (candidates && candidates.length > 0) {
+        // Pick a deterministic alternative (first one that's not the same id)
+        const alt = candidates.find(c => c.id !== ex.id) || candidates[0]
+        return { ...alt, sets: 3 }
+      }
+      // No muscle-specific alternative: just reduce sets and rest
+      return { ...ex, difficulty: 'easy' as const, sets: 3, restSeconds: Math.max(30, ex.restSeconds - 15) }
+    })
+
+    const updated: Workout = {
+      ...workout,
+      difficulty: 'easy',
+      exercises: newExercises,
+    }
+    return this.withAdjustedMeta(
+      updated,
+      'too_difficult',
+      `Swapped harder moves for easier ones that still hit the same muscles. Same plan, friendlier load.`
+    )
+  }
+
+  // 4) No equipment — strip to bodyweight, falling back to a known-good template
+  private static stripEquipment(workout: Workout, profile: UserProfile): Workout {
+    // Temporarily pretend the user has zero equipment
+    const noEquipProfile: UserProfile = { ...profile, equipment: ['none'] }
+    const stripped = this.filterExercises(workout.exercises, noEquipProfile)
+    if (stripped.length >= 2) {
+      const updated: Workout = {
+        ...workout,
+        exercises: stripped,
+        equipment: [],
+        // Re-fit duration to a sensible bodyweight cap
+        duration: Math.min(workout.duration, 30),
+        estimatedCalories: Math.round(Math.min(workout.duration, 30) * 6),
+      }
+      return this.withAdjustedMeta(
+        updated,
+        'no_equipment',
+        `Dropped every move that needs gear — ${stripped.length} bodyweight exercises left.`
+      )
+    }
+    // Fall back to a known-good bodyweight template
+    const fallback: Workout = {
+      ...workout,
+      name: 'Bodyweight Reset',
+      duration: 20,
+      difficulty: 'easy',
+      targetMuscles: ['full_body'],
+      exercises: [
+        exerciseDatabase['bodyweight_squats'],
+        exerciseDatabase['incline_push_ups'],
+        exerciseDatabase['glute_bridges'],
+        exerciseDatabase['plank'],
+      ],
+      equipment: [],
+      estimatedCalories: 120,
+    }
+    return this.withAdjustedMeta(
+      fallback,
+      'no_equipment',
+      `Replaced the workout with a 20-min bodyweight set — no gear needed.`
+    )
+  }
+
+  // 5) Schedule changed — re-fit window to the same workout; trim if it doesn't fit
+  private static refitToSchedule(workout: Workout, profile: UserProfile): Workout {
+    const win = this.findWorkoutWindow(profile, workout.dayOfWeek)
+    if (!win.window) {
+      // No real window found — fall back to time-shorten so the user can still train
+      return this.shortenForTime(workout)
+    }
+    // Try to estimate the new window length from the "HH:MM AM/PM – HH:MM AM/PM" string
+    const m = win.window.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*[–-]\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+    let windowMinutes = workout.duration
+    if (m) {
+      const [, h1, min1, ap1, h2, min2, ap2] = m
+      const toMin = (h: string, mm: string, ap: string) => {
+        let hh = parseInt(h, 10)
+        if (ap.toUpperCase() === 'PM' && hh !== 12) hh += 12
+        if (ap.toUpperCase() === 'AM' && hh === 12) hh = 0
+        return hh * 60 + parseInt(mm, 10)
+      }
+      const a = toMin(h1, min1, ap1)
+      let b = toMin(h2, min2, ap2)
+      if (b < a) b += 24 * 60 // overnight
+      windowMinutes = b - a
+    }
+    if (windowMinutes >= workout.duration) {
+      // Window has room — keep the workout, just update the label
+      const updated: Workout = {
+        ...workout,
+        suggestedWindow: win.window,
+        notes: win.window ? `Suggested window: ${win.window}. ${workout.notes || ''}` : workout.notes,
+      }
+      return this.withAdjustedMeta(
+        updated,
+        'schedule_changed',
+        `Re-fit to your current schedule: ${win.window}. Same workout, new slot.`
+      )
+    }
+    // Window is too tight — shorten to match
+    const newDuration = Math.max(10, windowMinutes - 2)
+    const updated: Workout = {
+      ...workout,
+      duration: newDuration,
+      suggestedWindow: win.window,
+      notes: `Suggested window: ${win.window}. ${workout.notes || ''}`,
+      estimatedCalories: Math.round(newDuration * 6),
+    }
+    return this.withAdjustedMeta(
+      updated,
+      'schedule_changed',
+      `Window is only ${windowMinutes} min — trimmed the workout from ${workout.duration} to ${newDuration} min to fit.`
+    )
+  }
+
+  // 6) Different activity — rotate to the next template in the user's plan set
+  private static rotateTemplate(workout: Workout, profile: UserProfile): Workout {
+    const templates = this.selectTemplates(profile)
+    if (templates.length <= 1) {
+      // Nothing to rotate to — fall back to a different style entirely
+      const alt: Workout = {
+        ...workout,
+        name: 'Mobility & Flow',
+        targetMuscles: ['flexibility', 'mobility'],
+        exercises: [exerciseDatabase['yoga_sun_salutation'], exerciseDatabase['plank']],
+        equipment: [],
+        difficulty: 'easy',
+      }
+      return this.withAdjustedMeta(alt, 'different_activity', `Swapped in a mobility & flow session — different style, same effort.`)
+    }
+    // Find current template index by name match
+    const currentIdx = templates.findIndex(t => t.name === workout.name)
+    const nextIdx = (currentIdx + 1) % templates.length
+    const next = templates[nextIdx]
+    // Filter the new template's exercises through the user's real equipment so we
+    // don't end up recommending moves they can't do.
+    const newExercises = this.filterExercises(next.exercises, profile)
+    if (newExercises.length === 0) {
+      // Equip-filter emptied it — try the next-next template
+      const fallback = templates[(nextIdx + 1) % templates.length]
+      const fbExercises = this.filterExercises(fallback.exercises, profile)
+      const updated: Workout = {
+        ...workout,
+        name: fallback.name,
+        targetMuscles: fallback.targetMuscles,
+        exercises: fbExercises,
+        equipment: fallback.equipment,
+        reasoning: `Adjusted: different activity — swapped ${workout.name} for ${fallback.name} for variety.`,
+      }
+      return this.withAdjustedMeta(updated, 'different_activity', `Swapped in ${fallback.name} instead — different style for today.`)
+    }
+    const updated: Workout = {
+      ...workout,
+      name: next.name,
+      targetMuscles: next.targetMuscles,
+      exercises: newExercises,
+      equipment: next.equipment,
+      reasoning: `Adjusted: different activity — swapped ${workout.name} for ${next.name} for variety.`,
+    }
+    return this.withAdjustedMeta(updated, 'different_activity', `Swapped in ${next.name} instead — different style for today.`)
+  }
+
+  // Helper: stamp the adjustment reason on the workout + prepend a plain-language note
+  private static withAdjustedMeta(workout: Workout, reason: AdjustReason, body: string): Workout {
+    const prefix = `Adjusted: ${reason.replace(/_/g, ' ')} — `
+    const prev = workout.reasoning ? workout.reasoning + ' ' : ''
+    return {
+      ...workout,
+      adjustedReason: reason,
+      reasoning: prefix + body + (prev && !prev.startsWith('Adjusted') ? ` (Original: ${prev.trim()})` : ''),
+    }
   }
 }
 

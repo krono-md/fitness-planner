@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { UserProfile, Workout, WorkoutSession, SleepRecord, Goal, Notification } from '../types'
-import { PersonalizationEngine } from '../engine/personalizationEngine'
+import { PersonalizationEngine, AdjustReason, ADJUST_REASON_META } from '../engine/personalizationEngine'
 
 const defaultNotifications: Notification[] = [
   {
@@ -45,6 +45,7 @@ interface AppState {
   setUser: (user: UserProfile) => void
   setUserPlan: (plan: Workout[]) => void
   regeneratePlan: () => void
+  adjustTodayWorkout: (reason: AdjustReason) => void
   rescheduleWorkout: (workoutId: string, newDay: string) => void
   skipWorkout: (workoutId: string) => void
   markWorkoutSkipped: (workoutId: string) => void
@@ -83,6 +84,28 @@ export const useAppStore = create<AppState>()(
         if (user) {
           set({ userPlan: PersonalizationEngine.generatePlan(user) })
         }
+      },
+
+      adjustTodayWorkout: (reason: AdjustReason) => {
+        const { user, userPlan } = get()
+        if (!user) return
+        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+        const idx = userPlan.findIndex(w => w.dayOfWeek === today)
+        if (idx === -1) return
+        const todayWorkout = userPlan[idx]
+        const adjusted = PersonalizationEngine.adjustWorkout(todayWorkout, reason, user)
+        const next = [...userPlan]
+        next[idx] = adjusted
+        set({ userPlan: next })
+        get().addNotification({
+          id: `notif_${Date.now()}`,
+          userId: user.id,
+          type: 'plan_adjustment',
+          title: `Adjusted: ${ADJUST_REASON_META[reason].label}`,
+          message: ADJUST_REASON_META[reason].description,
+          read: false,
+          createdAt: new Date().toISOString(),
+        })
       },
 
       rescheduleWorkout: (workoutId, newDay) => {

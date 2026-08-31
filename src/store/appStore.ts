@@ -2,6 +2,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { UserProfile, Workout, WorkoutSession, SleepRecord, Goal, Notification } from '../types'
 import { PersonalizationEngine, AdjustReason, ADJUST_REASON_META } from '../engine/personalizationEngine'
+import { AdaptiveEngine } from '../engine/adaptiveEngine'
+
+/** Format a Date as YYYY-MM-DD in the local timezone. We use this in the
+ *  store (and the rest of the app) so that any new "what day did this happen
+ *  on" stamp survives being persisted and re-read across timezones. */
+function localDateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 const defaultNotifications: Notification[] = [
   {
@@ -41,6 +52,9 @@ interface AppState {
   goals: Goal[]
   notifications: Notification[]
   demoMode: boolean
+  /** Keys of adaptive suggestions already applied so we don't double-fire.
+   *  Key format: `${adaptationType}:${localDateKey(date)}`. */
+  lastAppliedAdaptations: string[]
 
   setUser: (user: UserProfile) => void
   setUserPlan: (plan: Workout[]) => void
@@ -60,6 +74,12 @@ interface AppState {
   markNotificationRead: (id: string) => void
   clearNotifications: () => void
   setDemoMode: (enabled: boolean) => void
+  /** Apply non-destructive adaptive patterns the engine has detected
+   *  (skip pattern → reschedule, hard streak → soften next workout, time
+   *  pressure → shrink duration). Idempotent on the same date+type pair. */
+  applyAdaptiveSuggestions: () => void
+  /** Dismiss a single suggestion without applying it. */
+  dismissAdaptiveSuggestion: (key: string) => void
   reset: () => void
 }
 
@@ -73,6 +93,7 @@ export const useAppStore = create<AppState>()(
       goals: [],
       notifications: defaultNotifications,
       demoMode: false,
+      lastAppliedAdaptations: [],
 
       setUser: (user) => {
         const plan = PersonalizationEngine.generatePlan(user, [])
@@ -186,6 +207,9 @@ export const useAppStore = create<AppState>()(
             createdAt: new Date().toISOString(),
           })
         }
+        // Re-run the adaptive engine — the new session may have just crossed
+        // the threshold for a skip / hard-streak / time-pressure pattern.
+        get().applyAdaptiveSuggestions()
       },
 
       updateWorkoutSession: (session) => set((state) => ({
@@ -221,6 +245,9 @@ export const useAppStore = create<AppState>()(
           read: false,
           createdAt: now,
         })
+        // addWorkoutSession already calls applyAdaptiveSuggestions; this is
+        // belt-and-suspenders for callers that bypass it.
+        get().applyAdaptiveSuggestions()
       },
 
       addSleepRecord: (record) => {
@@ -249,6 +276,117 @@ export const useAppStore = create<AppState>()(
 
       clearNotifications: () => set({ notifications: [] }),
 
+      applyAdaptiveSuggestions: () => {
+        const { user, workoutSessions, userPlan, lastAppliedAdaptations } = get()
+        if (!user) return
+        const adaptations = AdaptiveEngine.analyzePatterns(workoutSessions, user)
+        if (adaptations.length === 0) return
+
+        const today = localDateKey(new Date())
+        const newKeys: string[] = []
+        let nextPlan = userPlan
+        const notifications: Notification[] = []
+
+        for (const adapt of adaptations) {
+          // Dedup: skip if we've already applied this same (type, date) pair.
+          const key = `${adapt.adaptationType}:${today}`
+          if (lastAppliedAdaptations.includes(key)) continue
+
+          switch (adapt.adaptationType) {
+            case 'skip_pattern': {
+              // Find the recurring slot for the bad day and shift it two days later.
+              // The engine's reason text uses the full weekday name (e.g. "on Wednesdays").
+              const dayMatch = adapt.reason.match(/on (\w+)s/)
+              const dayFull = dayMatch ? dayMatch[1] : null
+              if (dayFull) {
+                const target = nextPlan.find(w => w.dayOfWeek === dayFull && w.exercises.length > 0)
+                if (target) {
+                  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                  const idx = days.indexOf(target.dayOfWeek)
+                  const newDay = days[(idx + 2) % 7]
+                  nextPlan = nextPlan.map(w => w.id === target.id ? { ...w, dayOfWeek: newDay } : w)
+                  notifications.push({
+                    id: `notif_${Date.now()}_${adapt.adaptationType}`,
+                    userId: user.id,
+                    type: 'plan_adjustment',
+                    title: 'Plan adapted',
+                    message: `You keep skipping ${dayFull}s — moved your ${target.name} to ${newDay}. You can change it back anytime.`,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                  })
+                  newKeys.push(key)
+                }
+              }
+              break
+            }
+            case 'difficulty_adjustment': {
+              // Soften the next planned (non-recovery) workout that hasn't already been adjusted.
+              const target = nextPlan.find(w => w.exercises.length > 0 && !w.adjustedReason)
+              if (target) {
+                const softened = PersonalizationEngine.adjustWorkout(target, 'more_tired', user)
+                nextPlan = nextPlan.map(w => w.id === target.id ? softened : w)
+                notifications.push({
+                  id: `notif_${Date.now()}_${adapt.adaptationType}`,
+                  userId: user.id,
+                  type: 'plan_adjustment',
+                  title: 'Plan adapted',
+                  message: `Your last 3 sessions felt hard — softened the next one (${target.name}) to give you a breather.`,
+                  read: false,
+                  createdAt: new Date().toISOString(),
+                })
+                newKeys.push(key)
+              }
+              break
+            }
+            case 'schedule_conflict': {
+              // Pre-emptively shrink the next planned workout to 70% of its duration.
+              const target = nextPlan.find(w => w.exercises.length > 0 && w.duration > 0)
+              if (target) {
+                const newDuration = Math.max(10, Math.round(target.duration * 0.7))
+                const trimmed: Workout = {
+                  ...target,
+                  duration: newDuration,
+                  estimatedCalories: Math.round(newDuration * 6),
+                  notes: target.notes
+                    ? `${target.notes} · Trimmed to ${newDuration} min based on your recent session lengths.`
+                    : `Trimmed to ${newDuration} min based on your recent session lengths.`,
+                }
+                nextPlan = nextPlan.map(w => w.id === target.id ? trimmed : w)
+                notifications.push({
+                  id: `notif_${Date.now()}_${adapt.adaptationType}`,
+                  userId: user.id,
+                  type: 'plan_adjustment',
+                  title: 'Plan adapted',
+                  message: `Workouts have been running short — trimmed ${target.name} to ${newDuration} min to fit the time you're actually putting in.`,
+                  read: false,
+                  createdAt: new Date().toISOString(),
+                })
+                newKeys.push(key)
+              }
+              break
+            }
+            case 'progression':
+              // Reserved for future use; no mutation today.
+              break
+          }
+        }
+
+        if (newKeys.length === 0) return
+        set((state) => ({
+          userPlan: nextPlan,
+          lastAppliedAdaptations: [...state.lastAppliedAdaptations, ...newKeys],
+          notifications: [...notifications, ...state.notifications],
+        }))
+      },
+
+      dismissAdaptiveSuggestion: (key) => {
+        set((state) => ({
+          lastAppliedAdaptations: state.lastAppliedAdaptations.includes(key)
+            ? state.lastAppliedAdaptations
+            : [...state.lastAppliedAdaptations, key],
+        }))
+      },
+
       setDemoMode: (enabled) => set({ demoMode: enabled }),
 
       reset: () => {
@@ -261,6 +399,7 @@ export const useAppStore = create<AppState>()(
         goals: [],
         notifications: defaultNotifications,
         demoMode: false,
+        lastAppliedAdaptations: [],
         })
       },
     }),
@@ -274,6 +413,7 @@ export const useAppStore = create<AppState>()(
         goals: state.goals,
         notifications: state.notifications,
         demoMode: state.demoMode,
+        lastAppliedAdaptations: state.lastAppliedAdaptations,
       }),
     }
   )

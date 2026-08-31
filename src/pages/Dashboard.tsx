@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Clock, Flame, TrendingUp, Target, Moon, ChevronRight, Dumbbell, Play, Zap, AlertTriangle, RefreshCw, Sparkles, Calendar } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 import { calculateStreak, calculateConsistency } from '../utils/stats'
 import { PersonalizationEngine, ADJUST_REASON_META } from '../engine/personalizationEngine'
+import { AdaptiveEngine } from '../engine/adaptiveEngine'
 import PageHeader from '../components/PageHeader'
 import AdjustSheet from '../components/AdjustSheet'
 
@@ -57,12 +58,34 @@ export default function Dashboard() {
     { label: 'Consistency', value: `${consistency}%`, icon: TrendingUp, tile: 'bg-emerald-500/15 text-emerald-400' },
   ]
 
+  const adaptations = useMemo(
+    () => AdaptiveEngine.analyzePatterns(workoutSessions, user),
+    [workoutSessions, user]
+  )
+  const pendingAdaptation = adaptations.length > 0
+
   return (
     <div className="whop-page">
       <PageHeader
         title={`${greeting}, ${user.name?.split(' ')[0]}`}
         subtitle={`${today} · Your personalized fitness plan`}
       />
+
+      {pendingAdaptation && (
+        <Link
+          to="/insights"
+          className="whop-card p-3.5 flex items-center gap-3 mb-5 hover:bg-white/[0.04] transition-colors"
+        >
+          <div className="whop-icon-tile bg-accent-warning/15 text-accent-warning">
+            <Sparkles className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Plan adaptation suggested</p>
+            <p className="whop-micro truncate">{adaptations[0].reason}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/40 flex-shrink-0" />
+        </Link>
+      )}
 
       {/* Featured workout card */}
       <div className="whop-featured p-5 md:p-6 relative overflow-hidden">

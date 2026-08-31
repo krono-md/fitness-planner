@@ -377,7 +377,9 @@ export class PersonalizationEngine {
     const timeMin = ctx.duration
     const windowInfo = ctx.window
     const equipmentCount = profile.equipment.length
-    const hasGym = profile.equipment.includes('full_gym') || profile.workoutLocation === 'gym'
+    // Equipment access is determined by what the user actually owns, not by
+    // their workoutLocation. See selectTemplates for the rationale.
+    const hasGym = profile.equipment.includes('full_gym')
     const noEquipment = equipmentCount === 0 || profile.equipment.includes('none')
 
     // Goal + level basis
@@ -643,7 +645,11 @@ export class PersonalizationEngine {
     const secondary = profile.secondaryGoals || []
     const templates: Array<{ name: string; targetMuscles: string[]; exercises: Exercise[]; equipment: string[]; notes: string }> = []
 
-    const hasGym = profile.equipment.includes('full_gym') || profile.workoutLocation === 'gym'
+    // Equipment access is determined by what the user actually owns, not by
+    // their workoutLocation. (Someone can train at a gym but only have a
+    // pair of dumbbells.) WorkoutLocation still affects windowing / travel
+    // time but not which equipment is allowed.
+    const hasGym = profile.equipment.includes('full_gym')
     const hasDumbbells = profile.equipment.includes('dumbbells') || hasGym
     const hasBands = profile.equipment.includes('resistance_bands')
     const noEquipment = profile.equipment.length === 0 || profile.equipment.includes('none')
@@ -745,7 +751,9 @@ export class PersonalizationEngine {
 
   private static filterExercises(exercises: Exercise[], profile: UserProfile): Exercise[] {
     const noEquipment = profile.equipment.length === 0 || profile.equipment.includes('none')
-    const hasGym = profile.equipment.includes('full_gym') || profile.workoutLocation === 'gym'
+    // Equipment access is determined by what the user actually owns, not by
+    // their workoutLocation. See selectTemplates for the rationale.
+    const hasGym = profile.equipment.includes('full_gym')
     const hasDumbbells = profile.equipment.includes('dumbbells') || hasGym
     const hasBands = profile.equipment.includes('resistance_bands')
 

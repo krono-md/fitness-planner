@@ -1,57 +1,23 @@
 import React, { useState } from 'react'
-import { User, Bell, Lock, Moon, Heart, Clock, Dumbbell, Calendar, ChevronRight, Save, RefreshCw, UserCheck } from 'lucide-react'
+import { User, Dumbbell, Heart, Bell, Moon, RefreshCw } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 
+/** Settings is now read-only by design: every field shows the real value
+ *  from the store as a whop-pill. The only live action is Reset All. */
 export default function Settings() {
-  const { user, setUser, reset } = useAppStore()
+  const { user, reset } = useAppStore()
   const [showResetModal, setShowResetModal] = useState(false)
 
-  const sections = [
-    {
-      icon: User,
-      label: 'Profile',
-      items: [
-        { label: 'Personal info', desc: 'Name, age, contact', value: user?.name || 'Not set' },
-        { label: 'Fitness profile', desc: 'Goals, preferences, experience', value: 'Configured' },
-        { label: 'Measurements', desc: 'Height, weight, body stats', value: user?.weight ? `${user.weight} lbs` : 'Not set' },
-      ]
-    },
-    {
-      icon: Dumbbell,
-      label: 'Workouts',
-      items: [
-        { label: 'Schedule', desc: 'Available days and times', value: `${user?.workoutsPerWeek || 0} days/week` },
-        { label: 'Equipment', desc: 'Available equipment', value: user?.equipment?.join(', ') || 'None' },
-        { label: 'Workout preferences', desc: 'Types, intensity, location', value: user?.workoutType || 'Mixed' },
-      ]
-    },
-    {
-      icon: Heart,
-      label: 'Health',
-      items: [
-        { label: 'Sleep settings', desc: 'Bedtime, wake time, goals', value: `${user?.averageSleep || 7}h/night` },
-        { label: 'Recovery tracking', desc: 'Log and monitor recovery', value: 'Active' },
-        { label: 'Stress management', desc: 'Track and manage stress', value: user?.stressLevel || 'Moderate' },
-      ]
-    },
-    {
-      icon: Bell,
-      label: 'Notifications',
-      items: [
-        { label: 'Workout reminders', desc: 'Get notified before workouts', value: 'On' },
-        { label: 'Streak alerts', desc: 'Stay motivated with streak info', value: 'On' },
-        { label: 'Plan updates', desc: 'Updates when plans change', value: 'On' },
-      ]
-    },
-    {
-      icon: Moon,
-      label: 'Appearance',
-      items: [
-        { label: 'Theme', desc: 'Dark mode, colors', value: 'Dark' },
-        { label: 'Compact mode', desc: ' denser interface', value: 'Off' },
-      ]
-    },
-  ]
+  // Derived values for display
+  const weeklyGoal = user?.workoutsPerWeek || 3
+  const availableTime = user?.availableTimePerSession || 30
+  const fitnessLevel = user?.fitnessLevel ? user.fitnessLevel.charAt(0).toUpperCase() + user.fitnessLevel.slice(1) : 'Beginner'
+  const goalText = user?.goal?.replace('_', ' ') || 'Build consistency'
+  const equipmentList = user?.equipment?.join(', ') || 'None'
+  const workoutType = user?.workoutType || 'Mixed'
+  const stressLevel = user?.stressLevel ? user.stressLevel.charAt(0).toUpperCase() + user.stressLevel.slice(1) : 'Moderate'
+  const averageSleep = user?.averageSleep || 7
+  const sleepGoal = user?.averageSleep ? `${Math.max(7, user.averageSleep - 0.5)}-${Math.min(9, user.averageSleep + 0.5)}` : '7-9'
 
   const handleReset = () => {
     reset()
@@ -59,133 +25,170 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Settings</h1>
-        <p className="text-white/60 text-sm md:text-base">Manage your profile and preferences</p>
+    <div className="whop-page">
+      <div className="mb-5">
+        <h1 className="whop-page-title">Settings</h1>
+        <p className="whop-page-sub">View your profile and preferences</p>
       </div>
 
-      {/* Profile Summary Card */}
-      <div className="bg-gradient-to-br from-dark-surface to-dark-elevated border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-xl md:rounded-2xl flex items-center justify-center">
-            <UserCheck className="w-8 h-8 md:w-10 md:h-10" />
+      {/* Profile card */}
+      <div className="whop-card p-5 mb-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="whop-icon-tile bg-gradient-to-br from-accent-primary to-accent-secondary w-10 h-10">
+            <User className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg md:text-xl font-bold mb-2 md:mb-3">{user?.name || 'Student'}</h2>
-            <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
-              <div>
-                <span className="text-white/60 text-xs md:text-sm">Fitness Level</span>
-                <p className="font-medium capitalize text-sm md:text-base">{user?.fitnessLevel || 'Beginner'}</p>
-              </div>
-              <div>
-                <span className="text-white/60 text-xs md:text-sm">Goal</span>
-                <p className="font-medium capitalize text-sm md:text-base">{user?.goal?.replace('_', ' ') || 'Build consistency'}</p>
-              </div>
-              <div>
-                <span className="text-white/60 text-xs md:text-sm">Workouts/Week</span>
-                <p className="font-medium text-sm md:text-base">{user?.workoutsPerWeek || 3}</p>
-              </div>
-              <div>
-                <span className="text-white/60 text-xs md:text-sm">Session Length</span>
-                <p className="font-medium text-sm md:text-base">{user?.availableTimePerSession || '30'} min</p>
-              </div>
-            </div>
+            <h2 className="whop-page-title text-lg font-semibold capitalize mb-0.5">
+              {user?.name || 'Student'}
+            </h2>
+            <p className="whop-page-sub text-sm">
+              {fitnessLevel} • {goalText}
+            </p>
           </div>
-          <button
-            onClick={() => setShowResetModal(true)}
-            className="w-full sm:w-auto min-h-10 px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm text-accent-danger"
-          >
-            Reset All
-          </button>
         </div>
-      </div>
 
-      {/* Settings Sections */}
-      <div className="space-y-4 md:space-y-6">
-        {sections.map((section, idx) => {
-          const Icon = section.icon
-          return (
-            <div key={idx} className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl overflow-hidden">
-              <div className="p-3 md:p-4 border-b border-dark-border flex items-center gap-2.5 md:gap-3">
-                <Icon className="w-4 h-4 md:w-5 md:h-5 text-accent-primary" />
-                <h2 className="font-bold text-sm md:text-base">{section.label}</h2>
-              </div>
-              <div className="divide-y divide-dark-border">
-                {section.items.map((item, itemIdx) => (
-                  <button
-                    key={itemIdx}
-                    className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-dark-hover transition-colors min-h-16"
-                  >
-                    <div className="text-left flex-1 min-w-0 pr-3">
-                      <div className="font-medium text-sm md:text-base">{item.label}</div>
-                      <div className="text-xs md:text-sm text-white/60 truncate">{item.desc}</div>
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                      <span className="text-xs md:text-sm text-white/40 hidden sm:block">{item.value}</span>
-                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-white/40" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Data & Privacy */}
-      <div className="bg-dark-surface border border-dark-border rounded-xl md:rounded-2xl p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Data & Privacy</h2>
-        <div className="space-y-3 md:space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-dark-elevated rounded-lg">
-            <div>
-              <h3 className="font-medium mb-0.5 md:mb-1 text-sm md:text-base">Export Data</h3>
-              <p className="text-xs md:text-sm text-white/60">Download your fitness data</p>
-            </div>
-            <button className="w-full sm:w-auto min-h-10 px-4 py-2 border border-dark-border hover:bg-dark-hover rounded-lg text-sm">
-              Export
-            </button>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Workouts/Week</span>
+            <span className="whop-pill whop-pill-accent">{weeklyGoal}</span>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-dark-elevated rounded-lg">
-            <div>
-              <h3 className="font-medium mb-0.5 md:mb-1 text-sm md:text-base">Delete Account</h3>
-              <p className="text-xs md:text-sm text-white/60">Permanently remove all data</p>
-            </div>
-            <button className="w-full sm:w-auto min-h-10 px-4 py-2 border border-accent-danger/50 text-accent-danger hover:bg-accent-danger/10 rounded-lg text-sm">
-              Delete
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Session Length</span>
+            <span className="whop-pill whop-pill-accent">{availableTime} min</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Equipment</span>
+            <span className="whop-pill whop-pill-accent">{equipmentList}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Workout Type</span>
+            <span className="whop-pill whop-pill-accent">{workoutType}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Stress Level</span>
+            <span className="whop-pill whop-pill-accent">{stressLevel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="whop-micro text-white/50">Sleep Goal</span>
+            <span className="whop-pill whop-pill-accent">{sleepGoal}h</span>
           </div>
         </div>
       </div>
 
-      {/* App Info */}
-      <div className="text-center text-white/40 text-xs md:text-sm">
-        <p>FitTrack v1.0.0 • Student Fitness Planner</p>
-        <p className="mt-1">Built with React, TypeScript, and Tailwind CSS</p>
+      {/* Workouts section */}
+      <div className="whop-card p-4 mb-4">
+        <h3 className="whop-section-label mb-3">Workouts</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Schedule</span>
+            <span className="whop-pill">{weeklyGoal} days/week</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Preferences</span>
+            <span className="whop-pill">{workoutType}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Health section */}
+      <div className="whop-card p-4 mb-4">
+        <h3 className="whop-section-label mb-3">Health</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Sleep Tracking</span>
+            <span className="whop-pill">{averageSleep}h avg</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Recovery</span>
+            <span className="whop-pill">Active</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Stress Management</span>
+            <span className="whop-pill">{stressLevel}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Notifications section */}
+      <div className="whop-card p-4 mb-4">
+        <h3 className="whop-section-label mb-3">Notifications</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Workout Reminders</span>
+            <span className="whop-pill whop-pill-accent">On</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Streak Alerts</span>
+            <span className="whop-pill whop-pill-accent">On</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Plan Updates</span>
+            <span className="whop-pill whop-pill-accent">On</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Appearance section */}
+      <div className="whop-card p-4 mb-4">
+        <h3 className="whop-section-label mb-3">Appearance</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Theme</span>
+            <span className="whop-pill">Dark</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-white/70">Compact Mode</span>
+            <span className="whop-pill">Off</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Reset modal */}
+      <div className="whop-card p-5 mb-5">
+        <h3 className="whop-section-label mb-3">Data & Privacy</h3>
+        <p className="whop-page-sub mb-4">
+          Your data is stored locally in your browser. Reset clears everything and returns to onboarding.
+        </p>
+        <div className="whop-divider my-4" />
+        <button
+          onClick={() => setShowResetModal(true)}
+          className="whop-btn-ghost w-full"
+        >
+          Reset All Data
+        </button>
+      </div>
+
+      {/* App info */}
+      <div className="whop-card p-4 text-center text-xs">
+        <p className="whop-micro">FitTrack v1.0.0 • Student Fitness Planner</p>
+        <p className="whop-micro">Built with React, TypeScript, and Tailwind CSS</p>
       </div>
 
       {/* Reset Modal */}
       {showResetModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-dark-surface border border-dark-border rounded-2xl max-w-md w-full p-5 md:p-6">
-            <div className="p-3 bg-accent-danger/20 rounded-xl w-fit mb-4">
-              <RefreshCw className="w-6 h-6 text-accent-danger" />
+          <div className="whop-card p-6 max-w-md w-full">
+            <div className="flex items-center justify-center mb-4">
+              <div className="whop-icon-tile bg-rose-500/20 text-rose-400 w-8 h-8">
+                <RefreshCw className="w-4 h-4" />
+              </div>
             </div>
-            <h2 className="text-lg md:text-xl font-bold mb-2">Reset All Data</h2>
-            <p className="text-white/60 mb-6 text-sm md:text-base">
+            <h2 className="whop-page-title text-lg font-semibold mb-3">
+              Reset All Data
+            </h2>
+            <p className="whop-page-sub mb-5">
               This will delete all your progress, settings, and start fresh. This action cannot be undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex justify-between pt-4">
               <button
                 onClick={() => setShowResetModal(false)}
-                className="flex-1 min-h-11 px-4 py-3 border border-dark-border hover:bg-dark-hover rounded-lg font-medium text-sm"
+                className="whop-btn-ghost"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="flex-1 min-h-11 px-4 py-3 bg-accent-danger text-white rounded-lg font-bold text-sm"
+                className="whop-btn-primary"
               >
                 Reset Everything
               </button>

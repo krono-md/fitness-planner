@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Search, Filter, Dumbbell, Clock, Target, Zap, ChevronRight } from 'lucide-react'
+import { Search, X, Dumbbell, Clock, Target, Zap, ChevronRight, BookOpen } from 'lucide-react'
 
 const exerciseDatabase = [
   {
@@ -155,10 +155,10 @@ export default function ExerciseLibrary() {
   const [selectedExercise, setSelectedExercise] = useState<any>(null)
 
   const categories = [
-    { id: 'strength', label: 'Strength', icon: Dumbbell, count: exerciseDatabase.filter(e => e.category === 'strength').length },
-    { id: 'cardio', label: 'Cardio', icon: Zap, count: exerciseDatabase.filter(e => e.category === 'cardio').length },
-    { id: 'core', label: 'Core', icon: Target, count: exerciseDatabase.filter(e => e.category === 'core').length },
-    { id: 'mobility', label: 'Mobility', icon: Clock, count: exerciseDatabase.filter(e => e.category === 'mobility').length },
+    { id: 'strength', label: 'Strength', icon: Dumbbell, count: exerciseDatabase.filter(e => e.category === 'strength').length, color: 'bg-amber-500/15 text-amber-400' },
+    { id: 'cardio', label: 'Cardio', icon: Zap, count: exerciseDatabase.filter(e => e.category === 'cardio').length, color: 'bg-violet-500/15 text-violet-400' },
+    { id: 'core', label: 'Core', icon: Target, count: exerciseDatabase.filter(e => e.category === 'core').length, color: 'bg-rose-500/15 text-rose-400' },
+    { id: 'mobility', label: 'Mobility', icon: Clock, count: exerciseDatabase.filter(e => e.category === 'mobility').length, color: 'bg-emerald-500/15 text-emerald-400' },
   ]
 
   const filteredExercises = exerciseDatabase.filter(exercise => {
@@ -176,33 +176,26 @@ export default function ExerciseLibrary() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Exercise Library</h1>
-        <p className="text-white/50 text-lg">Browse and search exercises</p>
+    <div className="whop-page">
+      <div className="mb-5">
+        <h1 className="whop-page-title">Exercise Library</h1>
+        <p className="whop-page-sub">Browse and search exercises</p>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search exercises or muscle groups..."
-            className="w-full bg-dark-surface border border-dark-border rounded-xl pl-12 pr-4 py-3 md:py-3.5 focus:outline-none focus:ring-2 focus:ring-accent-primary text-sm md:text-base"
-          />
-        </div>
-        <button className="px-6 py-3 md:py-3.5 border border-dark-border hover:bg-dark-hover rounded-xl font-medium flex items-center justify-center gap-2 transition-colors text-sm md:text-base">
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search exercises or muscle groups..."
+          className="whop-input pl-10"
+        />
       </div>
 
       {/* Category Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
         {categories.map((cat) => {
           const Icon = cat.icon
           const isActive = selectedCategory === cat.id
@@ -210,31 +203,25 @@ export default function ExerciseLibrary() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(isActive ? null : cat.id)}
-              className={`p-4 md:p-5 rounded-2xl border transition-all shadow-soft hover:shadow-medium min-h-[120px] md:min-h-0 ${
-                isActive
-                  ? 'bg-accent-primary/10 border-accent-primary/30'
-                  : 'bg-dark-surface border-dark-border hover:bg-dark-hover'
-              }`}
+              className={`whop-card p-4 text-left transition-all ${isActive ? 'whop-nav-active' : ''}`}
             >
-              <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-2 ${isActive ? 'text-accent-primary' : 'text-white/60'}`} />
-              <p className="font-bold text-sm md:text-lg">{cat.label}</p>
-              <p className="text-xs md:text-sm text-white/50">{cat.count} exercises</p>
+              <div className={`whop-icon-tile ${cat.color} mb-2`}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <p className="text-sm font-semibold">{cat.label}</p>
+              <p className="text-xs text-white/50">{cat.count} exercises</p>
             </button>
           )
         })}
       </div>
 
       {/* Difficulty Filter */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-4">
         {['easy', 'moderate', 'hard'].map((diff) => (
           <button
             key={diff}
             onClick={() => setSelectedDifficulty(selectedDifficulty === diff ? null : diff)}
-            className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-medium text-sm transition-colors ${
-              selectedDifficulty === diff
-                ? difficultyColors[diff]
-                : 'bg-dark-surface border border-dark-border text-white/70 hover:bg-dark-hover'
-            }`}
+            className={`whop-pill cursor-pointer ${selectedDifficulty === diff ? 'whop-pill-accent' : ''}`}
           >
             {diff.charAt(0).toUpperCase() + diff.slice(1)}
           </button>
@@ -242,127 +229,123 @@ export default function ExerciseLibrary() {
       </div>
 
       {/* Exercise Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {filteredExercises.map((exercise) => (
           <button
             key={exercise.id}
             onClick={() => setSelectedExercise(exercise)}
-            className="bg-dark-surface border border-dark-border rounded-2xl p-6 text-left hover:bg-dark-hover transition-all shadow-soft hover:shadow-medium"
+            className="whop-card p-4 text-left hover:bg-white/[0.04] transition-all"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="font-bold text-lg mb-1">{exercise.name}</h3>
-                <p className="text-sm text-white/60 capitalize">{exercise.category}</p>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold mb-0.5">{exercise.name}</h3>
+                <p className="text-xs text-white/55 capitalize">{exercise.category}</p>
               </div>
-              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${difficultyColors[exercise.difficulty]}`}>
+              <span className={`whop-pill ${difficultyColors[exercise.difficulty]}`}>
                 {exercise.difficulty}
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {exercise.targetMuscles.map((muscle, idx) => (
-                <span key={idx} className="px-2 py-1 bg-dark-elevated rounded text-xs text-white/70">
+                <span key={idx} className="whop-pill text-[10px]">
                   {muscle}
                 </span>
               ))}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-white/60">
+            <div className="flex items-center justify-between text-xs text-white/55">
+              <div className="flex items-center gap-3">
                 <span>{exercise.sets} sets</span>
                 <span>{exercise.reps} reps</span>
                 <span>{exercise.restSeconds}s rest</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-white/40" />
+              <ChevronRight className="w-3.5 h-3.5 text-white/40" />
             </div>
           </button>
         ))}
       </div>
 
       {filteredExercises.length === 0 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-12 text-center shadow-soft">
-          <div className="w-16 h-16 bg-dark-hover rounded-full flex items-center justify-center mx-auto mb-4">
-            <Dumbbell className="w-8 h-8 text-white/30" />
+        <div className="whop-card p-10 text-center max-w-md mx-auto">
+          <div className="whop-icon-tile bg-white/[0.06] text-white/40 w-12 h-12 mx-auto mb-3">
+            <BookOpen className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-lg mb-2">No exercises found</h3>
-          <p className="text-white/60">Try adjusting your search or filters</p>
+          <h3 className="whop-page-title text-base mb-1.5">No exercises found</h3>
+          <p className="whop-page-sub">Try adjusting your search or filters</p>
         </div>
       )}
 
       {/* Exercise Detail Modal */}
       {selectedExercise && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-dark-surface border border-dark-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-large">
-            <div className="p-6 md:p-8">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-2">{selectedExercise.name}</h2>
-                  <p className="text-white/60 capitalize">{selectedExercise.category}</p>
-                </div>
-                <span className={`px-4 py-2 rounded-lg font-medium ${difficultyColors[selectedExercise.difficulty]}`}>
-                  {selectedExercise.difficulty}
-                </span>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="whop-card p-5 max-w-2xl w-full max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="whop-page-title text-lg mb-1">{selectedExercise.name}</h2>
+                <p className="whop-page-sub text-sm capitalize">{selectedExercise.category}</p>
               </div>
+              <button
+                onClick={() => setSelectedExercise(null)}
+                className="p-1.5 text-white/40 hover:text-white rounded-lg hover:bg-white/[0.06]"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
-                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xl md:text-2xl font-bold text-accent-primary">{selectedExercise.sets}</p>
-                  <p className="text-xs md:text-sm text-white/60">Sets</p>
-                </div>
-                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xl md:text-2xl font-bold text-accent-secondary">{selectedExercise.reps}</p>
-                  <p className="text-xs md:text-sm text-white/60">Reps</p>
-                </div>
-                <div className="bg-dark-elevated rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xl md:text-2xl font-bold text-accent-warning">{selectedExercise.restSeconds}s</p>
-                  <p className="text-xs md:text-sm text-white/60">Rest</p>
-                </div>
+            <div className="grid grid-cols-3 gap-2.5 mb-5">
+              <div className="whop-card p-3 text-center">
+                <p className="text-xl font-bold text-accent-primary">{selectedExercise.sets}</p>
+                <p className="text-xs text-white/55">Sets</p>
               </div>
+              <div className="whop-card p-3 text-center">
+                <p className="text-xl font-bold text-accent-secondary">{selectedExercise.reps}</p>
+                <p className="text-xs text-white/55">Reps</p>
+              </div>
+              <div className="whop-card p-3 text-center">
+                <p className="text-xl font-bold text-accent-warning">{selectedExercise.restSeconds}s</p>
+                <p className="text-xs text-white/55">Rest</p>
+              </div>
+            </div>
 
-              <div className="mb-6">
-                <h3 className="font-bold mb-3">Instructions</h3>
-                <p className="text-white/80 leading-relaxed text-sm md:text-base">{selectedExercise.instructions}</p>
-              </div>
+            <div className="mb-5">
+              <h3 className="whop-section-label mb-2">Instructions</h3>
+              <p className="text-sm text-white/80 leading-relaxed">{selectedExercise.instructions}</p>
+            </div>
 
-              <div className="mb-6">
-                <h3 className="font-bold mb-3">Target Muscles</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedExercise.targetMuscles.map((muscle: string, idx: number) => (
-                    <span key={idx} className="px-3 py-1 bg-dark-elevated rounded-lg text-sm text-white/80">
-                      {muscle}
-                    </span>
-                  ))}
-                </div>
+            <div className="mb-5">
+              <h3 className="whop-section-label mb-2">Target Muscles</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedExercise.targetMuscles.map((muscle: string, idx: number) => (
+                  <span key={idx} className="whop-pill">{muscle}</span>
+                ))}
               </div>
+            </div>
 
-              <div className="mb-6">
-                <h3 className="font-bold mb-3">Equipment</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedExercise.equipment.length > 0 ? (
-                    selectedExercise.equipment.map((eq: string, idx: number) => (
-                      <span key={idx} className="px-3 py-1 bg-dark-elevated rounded-lg text-sm text-white/80">
-                        {eq}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="px-3 py-1 bg-dark-elevated rounded-lg text-sm text-white/80">
-                      No equipment needed
-                    </span>
-                  )}
-                </div>
+            <div className="mb-5">
+              <h3 className="whop-section-label mb-2">Equipment</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedExercise.equipment.length > 0 ? (
+                  selectedExercise.equipment.map((eq: string, idx: number) => (
+                    <span key={idx} className="whop-pill">{eq}</span>
+                  ))
+                ) : (
+                  <span className="whop-pill">No equipment needed</span>
+                )}
               </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => setSelectedExercise(null)}
-                  className="flex-1 px-4 py-3 border border-dark-border hover:bg-dark-hover rounded-lg font-medium transition-colors"
-                >
-                  Close
-                </button>
-                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-lg font-bold transition-all hover:shadow-medium">
-                  Add to Workout
-                </button>
-              </div>
+            <div className="flex gap-3 pt-4 border-t border-white/[0.05]">
+              <button
+                onClick={() => setSelectedExercise(null)}
+                className="flex-1 whop-btn-ghost"
+              >
+                Close
+              </button>
+              <button className="flex-1 whop-btn-primary">
+                Add to Workout
+              </button>
             </div>
           </div>
         </div>
